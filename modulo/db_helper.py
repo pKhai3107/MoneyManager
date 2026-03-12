@@ -20,6 +20,16 @@ def init_db():
     conn = get_connection()
     cursor = conn.cursor()
     
+    # Tao bang categories
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            key TEXT UNIQUE NOT NULL,
+            value TEXT NOT NULL,
+            type INTEGER NOT NULL CHECK (type IN (0, 1)) -- 0: chi, 1: thu
+        )
+                   ''')
+
     # Tạo bảng transactions
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS transactions (
@@ -31,14 +41,6 @@ def init_db():
         FOREIGN KEY (category_id) REFERENCES categories (id)
         )
                     ''')
-    #Tao bang categories
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS categories (
-            key TEXT PRIMARY KEY,
-            value TEXT NOT NULL,
-            type INTERGER NOT NULL CHECK (type IN (0, 1)) -- 0: chi, 1: thu
-        )
-                   ''')
 
     # Tạo bảng settings
     cursor.execute('''
@@ -48,6 +50,17 @@ def init_db():
         )
     ''')
     
+    # Chèn categories mặc định
+    default_categories = [
+        ('food', 'Ăn uống', 0),
+        ('transport', 'Di chuyển', 0),
+        ('shopping', 'Mua sắm', 0),
+        ('bill', 'Hóa đơn', 0),
+        ('salary', 'Lương', 1),
+        ('bonus', 'Thưởng', 1)
+    ]
+    cursor.executemany('INSERT OR IGNORE INTO categories (key, value, type) VALUES (?, ?, ?)', default_categories)
+
     # Chèn thử dữ liệu mặc định cho hạn mức nếu chưa có
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('budget_limit', '5000000')")
     
