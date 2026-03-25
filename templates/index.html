@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quản lý tài chính cá nhân</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700;800&display=swap');
+
+    :root {
+      --bg: #f3f6fb;
+      --paper: #ffffff;
+      --text: #132238;
+      --muted: #55657d;
+      --line: #d7deea;
+      --income: #0f766e;
+      --expense: #b91c1c;
+      --primary: #0057b8;
+      --primary-2: #1d8fff;
+      --soft: #e8f2ff;
+      --warn-bg: #ffe7e7;
+      --ok-bg: #e8fff7;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Be Vietnam Pro", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% 0%, #dbeafe 0, transparent 25%),
+        radial-gradient(circle at 90% 20%, #fde68a 0, transparent 22%),
+        var(--bg);
+    }
+
+    .container {
+      max-width: 1180px;
+      margin: 24px auto 36px;
+      padding: 0 16px;
+    }
+
+    .hero {
+      background: linear-gradient(115deg, #003b88, #0a66c2 45%, #2a9d8f);
+      color: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.14);
+      margin-bottom: 16px;
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      letter-spacing: 0.2px;
+    }
+
+    .hero p {
+      margin: 0;
+      color: #eaf2ff;
+    }
+
+    .flash-wrap { margin-bottom: 14px; }
+
+    .flash {
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      border: 1px solid transparent;
+    }
+
+    .flash-success {
+      background: #e7fff4;
+      color: #065f46;
+      border-color: #9be7c4;
+    }
+
+    .flash-error {
+      background: #ffe9e9;
+      color: #991b1b;
+      border-color: #f8b4b4;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 8px 18px rgba(17, 24, 39, 0.06);
+    }
+
+    .c12 { grid-column: span 12; }
+    .c6 { grid-column: span 6; }
+    .c4 { grid-column: span 4; }
+
+    h2, h3 {
+      margin: 0 0 12px;
+      font-size: 18px;
+    }
+
+    .kpi {
+      font-size: 30px;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+
+    .sub {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .kpi-income { color: var(--income); }
+    .kpi-expense { color: var(--expense); }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    input, select, button {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    input, select {
+      background: #fff;
+      color: var(--text);
+    }
+
+    button {
+      border: 0;
+      color: #fff;
+      background: linear-gradient(100deg, var(--primary), var(--primary-2));
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    button.secondary {
+      background: linear-gradient(100deg, #334155, #475569);
+    }
+
+    button.danger {
+      background: linear-gradient(100deg, #b91c1c, #ef4444);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      overflow: hidden;
+      border-radius: 10px;
+    }
+
+    th {
+      text-align: left;
+      background: var(--soft);
+      color: #123b74;
+      font-weight: 700;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 9px;
+      vertical-align: top;
+    }
+
+    tr:hover td { background: #f8fbff; }
+
+    .tag-income { color: var(--income); font-weight: 800; }
+    .tag-expense { color: var(--expense); font-weight: 800; }
+
+    .status {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-weight: 700;
+    }
+
+    .status.ok {
+      background: var(--ok-bg);
+      color: #065f46;
+      border: 1px solid #9be7c4;
+    }
+
+    .status.warn {
+      background: var(--warn-bg);
+      color: #991b1b;
+      border: 1px solid #f5a8a8;
+    }
+
+    @media (max-width: 960px) {
+      .c6, .c4 { grid-column: span 12; }
+      .hero h1 { font-size: 24px; }
+      .kpi { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="hero">
+      <h1>Hệ thống quản lý tài chính cá nhân</h1>
+      <p>Phiên bản Web Flask để demo trực quan: thêm giao dịch, thống kê tháng, tổng kết danh mục và cảnh báo vượt ngân sách.</p>
+    </section>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-wrap">
+          {% for category, message in messages %}
+            <div class="flash flash-{{ 'success' if category == 'success' else 'error' }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <section class="grid">
+      <article class="card c4">
+        <h3>Số dư hiện tại</h3>
+        <div class="kpi">{{ '{:,.0f}'.format(thong_ke.current_balance) }} VND</div>
+        <div class="sub">Tổng quan tài khoản thời điểm hiện tại</div>
+      </article>
+
+      <article class="card c4">
+        <h3>Tổng thu</h3>
+        <div class="kpi kpi-income">{{ '{:,.0f}'.format(thong_ke.total_income) }} VND</div>
+        <div class="sub">Các khoản thu nhập đã ghi nhận</div>
+      </article>
+
+      <article class="card c4">
+        <h3>Tổng chi</h3>
+        <div class="kpi kpi-expense">{{ '{:,.0f}'.format((thong_ke.total_expense|abs)) }} VND</div>
+        <div class="sub">Các khoản chi tiêu đã ghi nhận</div>
+      </article>
+
+      <article class="card c6">
+        <h3>Thêm giao dịch mới</h3>
+        <form method="post" action="{{ url_for('them_giao_dich') }}">
+          <div class="row">
+            <select name="category_id" required>
+              {% for dm in danh_muc %}
+                <option value="{{ dm.id }}">{{ '+' if dm.type == 1 else '-' }} {{ dm.value }}</option>
+              {% endfor %}
+            </select>
+            <input type="number" name="amount" min="0" step="1000" placeholder="Số tiền" required>
+            <input type="text" name="note" placeholder="Ghi chú (tùy chọn)">
+            <button type="submit">Lưu giao dịch</button>
+          </div>
+        </form>
+      </article>
+
+      <article class="card c6">
+        <h3>Ngân sách & Demo nhanh</h3>
+
+        <form method="post" action="{{ url_for('cap_nhat_ngan_sach') }}" class="row" style="margin-bottom:10px">
+          <input type="number" name="budget_limit" min="0" step="1000" value="{{ bao_cao_thang.han_muc|int }}" required>
+          <button type="submit">Cập nhật hạn mức</button>
+        </form>
+
+        <form method="post" action="{{ url_for('demo_nhanh') }}" class="row" style="margin-bottom:10px">
+          <select name="mode">
+            <option value="normal">Demo không vượt hạn mức</option>
+            <option value="over">Demo vượt hạn mức</option>
+            <option value="full" selected>Demo đầy đủ (2 trường hợp)</option>
+          </select>
+          <button class="secondary" type="submit">Tạo dữ liệu demo</button>
+        </form>
+
+        <form method="post" action="{{ url_for('reset_demo') }}" class="row">
+          <button class="danger" type="submit" onclick="return confirm('Bạn có chắc muốn reset dữ liệu demo?')">
+            Reset demo nhanh
+          </button>
+        </form>
+      </article>
+
+      <article class="card c12">
+        <h3>Thống kê theo tháng</h3>
+        <form method="get" action="{{ url_for('trang_chu') }}" class="row" style="margin-bottom:10px">
+          <input type="number" name="nam" value="{{ bao_cao_thang.nam }}" min="2000" max="2100" required>
+          <input type="number" name="thang" value="{{ bao_cao_thang.thang }}" min="1" max="12" required>
+          <button type="submit">Xem báo cáo</button>
+        </form>
+
+        <div class="row">
+          <div>Tổng thu: <strong>{{ '{:,.0f}'.format(bao_cao_thang.tong_thu) }} VND</strong></div>
+          <div>Tổng chi: <strong>{{ '{:,.0f}'.format(bao_cao_thang.tong_chi) }} VND</strong></div>
+          <div>Số dư: <strong>{{ '{:,.0f}'.format(bao_cao_thang.so_du) }} VND</strong></div>
+          <div>Hạn mức: <strong>{{ '{:,.0f}'.format(bao_cao_thang.han_muc) }} VND</strong></div>
+        </div>
+
+        <div class="status {{ 'warn' if bao_cao_thang.vuot_han_muc else 'ok' }}">
+          {% if bao_cao_thang.vuot_han_muc %}
+            Cảnh báo: Vượt hạn mức {{ '{:,.0f}'.format(bao_cao_thang.so_tien_vuot) }} VND.
+          {% else %}
+            Bạn đang trong mức ngân sách an toàn.
+          {% endif %}
+        </div>
+      </article>
+
+      <article class="card c12">
+        <h3>Lịch sử giao dịch (20 bản ghi mới nhất)</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Ngày</th>
+              <th>Loại</th>
+              <th>Danh mục</th>
+              <th>Số tiền</th>
+              <th>Ghi chú</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for gd in giao_dich %}
+              <tr>
+                <td>{{ gd.date }}</td>
+                <td class="{{ 'tag-income' if gd.category_type == 1 else 'tag-expense' }}">{{ 'THU' if gd.category_type == 1 else 'CHI' }}</td>
+                <td>{{ gd.category_name }}</td>
+                <td>{{ '{:,.0f}'.format(gd.amount) }}</td>
+                <td>{{ gd.note or '' }}</td>
+              </tr>
+            {% else %}
+              <tr><td colspan="5">Chưa có dữ liệu giao dịch.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card c12">
+        <h3>Tổng kết theo danh mục</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Loại</th>
+              <th>Danh mục</th>
+              <th>Số giao dịch</th>
+              <th>Tổng tiền</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for dong in tong_ket_danh_muc %}
+              <tr>
+                <td class="{{ 'tag-income' if dong.category_type == 1 else 'tag-expense' }}">{{ 'THU' if dong.category_type == 1 else 'CHI' }}</td>
+                <td>{{ dong.category_name }}</td>
+                <td>{{ dong.transaction_count }}</td>
+                <td>{{ '{:,.0f}'.format((dong.total_amount|abs)) }}</td>
+              </tr>
+            {% else %}
+              <tr><td colspan="4">Chưa có dữ liệu tổng kết.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </article>
+    </section>
+  </div>
+</body>
+</html>
