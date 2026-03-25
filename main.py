@@ -1,47 +1,23 @@
+
 from modulo import db_helper, transaction
 
 
-def main_menu():
-    print("\n=== QUẢN LÝ TÀI CHÍNH CÁ NHÂN ===")
-
-    # Lấy số dư nhanh để người dùng nhìn tổng quan ngay khi mở menu
-    stats = transaction.get_balance_summary()
-    print(f"Số dư hiện tại: {stats['current_balance']:,.0f} VND")
-    print(
-        f"(Tổng Thu: {stats['total_income']:,.0f} | "
-        f"Tổng Chi: {abs(stats['total_expense']):,.0f})"
-    )
-
-    print("-" * 45)
-    print("1. Xem danh sách giao dịch")
-    print("2. Thêm Thu/Chi mới")
-    print("3. Xem danh sách Categories")
-    print("4. Khởi tạo lại Database (Reset)")
-    print("5. Thống kê theo tháng & cảnh báo ngân sách")   # Commit 2
-    print("6. Tổng kết theo danh mục")                     # Commit 3
-    print("0. Thoát")
-
-    choice = input("Lựa chọn của bạn: ")
-    return choice
-from modulo import db_helper, transaction
-
-
-def main_menu():
+def menu_chinh():
     print("\n=== QUẢN LÝ TÀI CHÍNH CÁ NHÂN ===")
 
     # Hiển thị số dư tổng quan ngay khi mở menu.
-    stats = transaction.get_balance_summary()
-    print(f"Số dư hiện tại: {stats['current_balance']:,.0f} VND")
+    thong_ke = transaction.get_balance_summary()
+    print(f"Số dư hiện tại: {thong_ke['current_balance']:,.0f} VND")
     print(
-        f"(Tổng Thu: {stats['total_income']:,.0f} | "
-        f"Tổng Chi: {abs(stats['total_expense']):,.0f})"
+        f"(Tổng Thu: {thong_ke['total_income']:,.0f} | "
+        f"Tổng Chi: {abs(thong_ke['total_expense']):,.0f})"
     )
 
     print("-" * 45)
     print("1. Xem danh sách giao dịch")
     print("2. Thêm Thu/Chi mới")
-    print("3. Xem danh sách Categories")
-    print("4. Khởi tạo lại Database (Reset)")
+    print("3. Xem danh sách danh mục")
+    print("4. Khởi tạo lại cơ sở dữ liệu")
     print("5. Thống kê theo tháng & cảnh báo ngân sách")
     print("6. Tổng kết theo danh mục")
     print("0. Thoát")
@@ -49,92 +25,92 @@ def main_menu():
     return input("Lựa chọn của bạn: ")
 
 
-def show_transactions():
-    txs = transaction.get_recent_transactions()
+def hien_thi_giao_dich():
+    danh_sach_gd = transaction.get_recent_transactions()
     print("\n--- LỊCH SỬ GIAO DỊCH GẦN ĐÂY ---")
-    if not txs:
+    if not danh_sach_gd:
         print("Chưa có giao dịch nào.")
         return
 
-    for t in txs:
-        type_str = "[THU]" if t["category_type"] == 1 else "[CHI]"
+    for gd in danh_sach_gd:
+        loai_gd = "[THU]" if gd["category_type"] == 1 else "[CHI]"
         print(
-            f"{t['date']} | {type_str} {t['category_name']:<12} | "
-            f"{t['amount']:>10,.0f} | {t['note'] or ''}"
+            f"{gd['date']} | {loai_gd} {gd['category_name']:<12} | "
+            f"{gd['amount']:>10,.0f} | {gd['note'] or ''}"
         )
 
 
-def add_new_tx():
+def them_giao_dich_moi():
     print("\n--- THÊM GIAO DỊCH MỚI ---")
 
-    cats = db_helper.get_all_categories()
-    if not cats:
+    danh_muc = db_helper.get_all_categories()
+    if not danh_muc:
         print("Chưa có danh mục. Vui lòng kiểm tra dữ liệu hệ thống.")
         return
 
-    for i, c in enumerate(cats):
-        type_mark = "+" if c["type"] == 1 else "-"
-        print(f"{i + 1}. ({type_mark}) {c['value']}")
+    for i, dm in enumerate(danh_muc):
+        dau_loai = "+" if dm["type"] == 1 else "-"
+        print(f"{i + 1}. ({dau_loai}) {dm['value']}")
 
     try:
         # Chọn danh mục theo số thứ tự trên màn hình.
-        cat_idx = int(input("Chọn số danh mục: ")) - 1
-        if cat_idx < 0 or cat_idx >= len(cats):
+        vi_tri_danh_muc = int(input("Chọn số danh mục: ")) - 1
+        if vi_tri_danh_muc < 0 or vi_tri_danh_muc >= len(danh_muc):
             print("!! Lỗi: Danh mục không hợp lệ.")
             return
 
-        amount = float(input("Nhập số tiền: "))
+        so_tien = float(input("Nhập số tiền: "))
 
         # Commit 1: dữ liệu nhập phải là số dương.
-        if amount <= 0:
+        if so_tien <= 0:
             print("!! Lỗi: Số tiền phải lớn hơn 0.")
             return
 
-        note = input("Ghi chú (nhấn Enter để bỏ qua): ").strip()
-        selected_cat = cats[cat_idx]
+        ghi_chu = input("Ghi chú (nhấn Enter để bỏ qua): ").strip()
+        danh_muc_da_chon = danh_muc[vi_tri_danh_muc]
 
         # add_transaction sẽ tự xử lý dấu âm/dương theo loại category.
-        transaction.add_transaction(amount, selected_cat["id"], note)
+        transaction.add_transaction(so_tien, danh_muc_da_chon["id"], ghi_chu)
         print(">> Thêm thành công!")
     except ValueError:
         print("!! Lỗi: Vui lòng nhập đúng định dạng số.")
 
 
-def show_monthly_report():
+def hien_thi_bao_cao_thang():
     # Commit 2: thống kê theo tháng + cảnh báo ngân sách.
     print("\n--- THỐNG KÊ THEO THÁNG ---")
     try:
-        year = int(input("Nhập năm (VD: 2026): "))
-        month = int(input("Nhập tháng (1-12): "))
+        nam = int(input("Nhập năm (VD: 2026): "))
+        thang = int(input("Nhập tháng (1-12): "))
 
-        if month < 1 or month > 12:
+        if thang < 1 or thang > 12:
             print("!! Lỗi: Tháng phải từ 1 đến 12.")
             return
 
-        monthly_rows = db_helper.get_monthly_summary(year, month)
+        du_lieu_thang = db_helper.get_monthly_summary(nam, thang)
 
-        total_income = 0
-        total_expense = 0
-        tx_count = 0
+        tong_thu = 0
+        tong_chi = 0
+        so_luong_giao_dich = 0
 
-        if monthly_rows:
-            row = monthly_rows[0]
-            total_income = row.get("total_income") or 0
-            total_expense = abs(row.get("total_expense") or 0)
-            tx_count = row.get("transaction_count") or 0
+        if du_lieu_thang:
+            dong = du_lieu_thang[0]
+            tong_thu = dong.get("total_income") or 0
+            tong_chi = abs(dong.get("total_expense") or 0)
+            so_luong_giao_dich = dong.get("transaction_count") or 0
 
-        budget_limit = db_helper.get_budget_limit()
-        balance = total_income - total_expense
-        is_over_budget = total_expense > budget_limit
+        han_muc = db_helper.get_budget_limit()
+        so_du = tong_thu - tong_chi
+        vuot_han_muc = tong_chi > han_muc
 
-        print(f"\nBáo cáo tháng {month:02d}/{year}")
-        print(f"Tổng thu          : {total_income:,.0f} VND")
-        print(f"Tổng chi          : {total_expense:,.0f} VND")
-        print(f"Số dư             : {balance:,.0f} VND")
-        print(f"Số lượng giao dịch: {tx_count}")
-        print(f"Hạn mức ngân sách : {budget_limit:,.0f} VND")
+        print(f"\nBáo cáo tháng {thang:02d}/{nam}")
+        print(f"Tổng thu          : {tong_thu:,.0f} VND")
+        print(f"Tổng chi          : {tong_chi:,.0f} VND")
+        print(f"Số dư             : {so_du:,.0f} VND")
+        print(f"Số lượng giao dịch: {so_luong_giao_dich}")
+        print(f"Hạn mức ngân sách : {han_muc:,.0f} VND")
 
-        if is_over_budget:
+        if vuot_han_muc:
             print("⚠ CẢNH BÁO: Bạn đã vượt ngân sách tháng này!")
         else:
             print("✅ Bạn vẫn trong mức ngân sách.")
@@ -142,64 +118,81 @@ def show_monthly_report():
         print("!! Lỗi: Năm/tháng phải là số.")
 
 
-def show_category_summary():
-    # Commit 3: tổng kết theo danh mục.
+def hien_thi_tong_ket_danh_muc():
+    # Commit 3: tổng kết theo danh mục
     print("\n--- TỔNG KẾT THEO DANH MỤC ---")
-    rows = db_helper.get_category_summary()
+    du_lieu_danh_muc = db_helper.get_category_summary()
 
-    if not rows:
+    if not du_lieu_danh_muc:
         print("Chưa có dữ liệu giao dịch.")
         return
 
     print(f"{'LOẠI':<6} | {'DANH MỤC':<14} | {'SỐ GD':<6} | {'TỔNG TIỀN':>12}")
     print("-" * 52)
 
-    for r in rows:
-        type_name = "THU" if r["category_type"] == 1 else "CHI"
-        total_amount = abs(r["total_amount"] or 0)
+    # 2 biến để cộng dồn tổng thu và tổng chi
+    tong_thu = 0
+    tong_chi = 0
+
+    for dong in du_lieu_danh_muc:
+        loai = "THU" if dong["category_type"] == 1 else "CHI"
+        tong_tien = abs(dong["total_amount"] or 0)
+
+        # Nếu là THU thì cộng vào tong_thu, ngược lại cộng vào tong_chi.
+        if dong["category_type"] == 1:
+            tong_thu += tong_tien
+        else:
+            tong_chi += tong_tien
+
         print(
-            f"{type_name:<6} | "
-            f"{r['category_name']:<14} | "
-            f"{r['transaction_count']:<6} | "
-            f"{total_amount:>12,.0f}"
+            f"{loai:<6} | "
+            f"{dong['category_name']:<14} | "
+            f"{dong['transaction_count']:<6} | "
+            f"{tong_tien:>12,.0f}"
         )
 
+    # In thêm dòng tổng kết cuối bảng cho dễ nhìn
+    print("-" * 52)
+    print(f"Tổng THU theo danh mục: {tong_thu:,.0f} VND")
+    print(f"Tổng CHI theo danh mục: {tong_chi:,.0f} VND")
 
-def show_categories():
-    cats = db_helper.get_all_categories()
-    print("\n--- DANH SÁCH CATEGORIES ---")
-    if not cats:
+
+def hien_thi_danh_muc():
+    print("\n--- DANH SÁCH DANH MỤC ---")
+    danh_muc = db_helper.get_all_categories()
+
+    if not danh_muc:
         print("Chưa có danh mục nào.")
         return
 
-    for c in cats:
-        type_name = "Thu nhập" if c["type"] == 1 else "Chi tiêu"
-        print(f"ID: {c['id']:<2} | {c['value']:<12} | Loại: {type_name}")
+    for dm in danh_muc:
+        loai = "Thu nhập" if dm["type"] == 1 else "Chi tiêu"
+        print(f"ID: {dm['id']:<2} | {dm['value']:<12} | Loại: {loai}")
 
 
-def main():
+def chuong_trinh_chinh():
     # Đảm bảo database được khởi tạo trước khi dùng.
     db_helper.init_db()
 
     while True:
-        choice = main_menu()
+        lua_chon = menu_chinh()
 
-        if choice == "1":
-            show_transactions()
-        elif choice == "2":
-            add_new_tx()
-        elif choice == "3":
-            show_categories()
-        elif choice == "4":
+        if lua_chon == "1":
+            hien_thi_giao_dich()
+        elif lua_chon == "2":
+            them_giao_dich_moi()
+        elif lua_chon == "3":
+            hien_thi_danh_muc()
+        elif lua_chon == "4":
             confirm = input("Bạn có chắc muốn Reset Database? (y/n): ")
             if confirm.lower() == "y":
                 db_helper.reset_database()
                 print(">> Đã reset database.")
-        elif choice == "5":
-            show_monthly_report()
-        elif choice == "6":
-            show_category_summary()
-        elif choice == "0":
+        elif lua_chon == "5":
+            hien_thi_bao_cao_thang()
+        elif lua_chon == "6":
+            hien_thi_tong_ket_danh_muc()
+        elif lua_chon == "0":
             print("Tạm biệt!")
             break
         else:
@@ -207,4 +200,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    chuong_trinh_chinh()
