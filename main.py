@@ -2,6 +2,28 @@
 from modulo import db_helper, transaction
 
 
+def nhap_so_nguyen(thong_bao):
+    """Nhập số nguyên, yêu cầu nhập lại nếu sai định dạng."""
+    while True:
+        try:
+            return int(input(thong_bao))
+        except ValueError:
+            print("!! Lỗi: Vui lòng nhập số nguyên hợp lệ.")
+
+
+def nhap_so_tien_duong(thong_bao):
+    """Nhập số tiền dương, yêu cầu nhập lại nếu <= 0 hoặc sai định dạng."""
+    while True:
+        try:
+            so_tien = float(input(thong_bao))
+            if so_tien <= 0:
+                print("!! Lỗi: Số tiền phải lớn hơn 0.")
+                continue
+            return so_tien
+        except ValueError:
+            print("!! Lỗi: Vui lòng nhập đúng định dạng số.")
+
+
 def menu_chinh():
     print("\n=== QUẢN LÝ TÀI CHÍNH CÁ NHÂN ===")
 
@@ -52,74 +74,61 @@ def them_giao_dich_moi():
         dau_loai = "+" if dm["type"] == 1 else "-"
         print(f"{i + 1}. ({dau_loai}) {dm['value']}")
 
-    try:
-        # Chọn danh mục theo số thứ tự trên màn hình.
-        vi_tri_danh_muc = int(input("Chọn số danh mục: ")) - 1
-        if vi_tri_danh_muc < 0 or vi_tri_danh_muc >= len(danh_muc):
-            print("!! Lỗi: Danh mục không hợp lệ.")
-            return
+    # Chọn danh mục theo số thứ tự trên màn hình.
+    vi_tri_danh_muc = nhap_so_nguyen("Chọn số danh mục: ") - 1
+    if vi_tri_danh_muc < 0 or vi_tri_danh_muc >= len(danh_muc):
+        print("!! Lỗi: Danh mục không hợp lệ.")
+        return
 
-        so_tien = float(input("Nhập số tiền: "))
+    so_tien = nhap_so_tien_duong("Nhập số tiền: ")
+    ghi_chu = input("Ghi chú (nhấn Enter để bỏ qua): ").strip()
+    danh_muc_da_chon = danh_muc[vi_tri_danh_muc]
 
-        # Commit 1: dữ liệu nhập phải là số dương.
-        if so_tien <= 0:
-            print("!! Lỗi: Số tiền phải lớn hơn 0.")
-            return
-
-        ghi_chu = input("Ghi chú (nhấn Enter để bỏ qua): ").strip()
-        danh_muc_da_chon = danh_muc[vi_tri_danh_muc]
-
-        # add_transaction sẽ tự xử lý dấu âm/dương theo loại category.
-        transaction.add_transaction(so_tien, danh_muc_da_chon["id"], ghi_chu)
-        print(">> Thêm thành công!")
-    except ValueError:
-        print("!! Lỗi: Vui lòng nhập đúng định dạng số.")
+    # add_transaction sẽ tự xử lý dấu âm/dương theo loại category.
+    transaction.add_transaction(so_tien, danh_muc_da_chon["id"], ghi_chu)
+    print(">> Thêm thành công!")
 
 
 def hien_thi_bao_cao_thang():
-    # Commit 2: thống kê theo tháng + cảnh báo ngân sách.
     print("\n--- THỐNG KÊ THEO THÁNG ---")
-    try:
-        nam = int(input("Nhập năm (VD: 2026): "))
-        thang = int(input("Nhập tháng (1-12): "))
+    nam = nhap_so_nguyen("Nhập năm (VD: 2026): ")
+    thang = nhap_so_nguyen("Nhập tháng (1-12): ")
 
-        if thang < 1 or thang > 12:
-            print("!! Lỗi: Tháng phải từ 1 đến 12.")
-            return
+    if thang < 1 or thang > 12:
+        print("!! Lỗi: Tháng phải từ 1 đến 12.")
+        return
 
-        du_lieu_thang = db_helper.get_monthly_summary(nam, thang)
+    du_lieu_thang = db_helper.get_monthly_summary(nam, thang)
 
-        tong_thu = 0
-        tong_chi = 0
-        so_luong_giao_dich = 0
+    tong_thu = 0
+    tong_chi = 0
+    so_luong_giao_dich = 0
 
-        if du_lieu_thang:
-            dong = du_lieu_thang[0]
-            tong_thu = dong.get("total_income") or 0
-            tong_chi = abs(dong.get("total_expense") or 0)
-            so_luong_giao_dich = dong.get("transaction_count") or 0
+    if du_lieu_thang:
+        dong = du_lieu_thang[0]
+        tong_thu = dong.get("total_income") or 0
+        tong_chi = abs(dong.get("total_expense") or 0)
+        so_luong_giao_dich = dong.get("transaction_count") or 0
 
-        han_muc = db_helper.get_budget_limit()
-        so_du = tong_thu - tong_chi
-        vuot_han_muc = tong_chi > han_muc
+    han_muc = db_helper.get_budget_limit()
+    so_du = tong_thu - tong_chi
+    vuot_han_muc = tong_chi > han_muc
 
-        print(f"\nBáo cáo tháng {thang:02d}/{nam}")
-        print(f"Tổng thu          : {tong_thu:,.0f} VND")
-        print(f"Tổng chi          : {tong_chi:,.0f} VND")
-        print(f"Số dư             : {so_du:,.0f} VND")
-        print(f"Số lượng giao dịch: {so_luong_giao_dich}")
-        print(f"Hạn mức ngân sách : {han_muc:,.0f} VND")
+    print(f"\nBáo cáo tháng {thang:02d}/{nam}")
+    print(f"Tổng thu          : {tong_thu:,.0f} VND")
+    print(f"Tổng chi          : {tong_chi:,.0f} VND")
+    print(f"Số dư             : {so_du:,.0f} VND")
+    print(f"Số lượng giao dịch: {so_luong_giao_dich}")
+    print(f"Hạn mức ngân sách : {han_muc:,.0f} VND")
 
-        if vuot_han_muc:
-            print("⚠ CẢNH BÁO: Bạn đã vượt ngân sách tháng này!")
-        else:
-            print("✅ Bạn vẫn trong mức ngân sách.")
-    except ValueError:
-        print("!! Lỗi: Năm/tháng phải là số.")
+    if vuot_han_muc:
+        vuot_bao_nhieu = tong_chi - han_muc
+        print(f"⚠ CẢNH BÁO: Bạn đã vượt ngân sách {vuot_bao_nhieu:,.0f} VND!")
+    else:
+        print("✅ Bạn vẫn trong mức ngân sách.")
 
 
 def hien_thi_tong_ket_danh_muc():
-    # Commit 3: tổng kết theo danh mục
     print("\n--- TỔNG KẾT THEO DANH MỤC ---")
     du_lieu_danh_muc = db_helper.get_category_summary()
 
