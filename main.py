@@ -1,5 +1,17 @@
 
 from modulo import db_helper, transaction
+from datetime import datetime
+
+
+def xoa_man_hinh():
+    """Xóa màn hình theo hệ điều hành để giao diện CLI gọn hơn."""
+    import os
+    os.system("cls" if os.name == "nt" else "clear")
+
+
+def tam_dung(thong_bao="\nNhấn Enter để tiếp tục..."):
+    """Tạm dừng để người dùng kịp đọc kết quả trên màn hình."""
+    input(thong_bao)
 
 
 def nhap_so_nguyen(thong_bao):
@@ -25,6 +37,7 @@ def nhap_so_tien_duong(thong_bao):
 
 
 def menu_chinh():
+    xoa_man_hinh()
     print("\n=== QUẢN LÝ TÀI CHÍNH CÁ NHÂN ===")
 
     # Hiển thị số dư tổng quan ngay khi mở menu.
@@ -42,6 +55,7 @@ def menu_chinh():
     print("4. Khởi tạo lại cơ sở dữ liệu")
     print("5. Thống kê theo tháng & cảnh báo ngân sách")
     print("6. Tổng kết theo danh mục")
+    print("7. Demo nhanh (tạo dữ liệu mẫu)")
     print("0. Thoát")
 
     return input("Lựa chọn của bạn: ")
@@ -87,6 +101,7 @@ def them_giao_dich_moi():
     # add_transaction sẽ tự xử lý dấu âm/dương theo loại category.
     transaction.add_transaction(so_tien, danh_muc_da_chon["id"], ghi_chu)
     print(">> Thêm thành công!")
+    tam_dung()
 
 
 def hien_thi_bao_cao_thang():
@@ -126,6 +141,7 @@ def hien_thi_bao_cao_thang():
         print(f"⚠ CẢNH BÁO: Bạn đã vượt ngân sách {vuot_bao_nhieu:,.0f} VND!")
     else:
         print("✅ Bạn vẫn trong mức ngân sách.")
+    tam_dung()
 
 
 def hien_thi_tong_ket_danh_muc():
@@ -164,6 +180,7 @@ def hien_thi_tong_ket_danh_muc():
     print("-" * 52)
     print(f"Tổng THU theo danh mục: {tong_thu:,.0f} VND")
     print(f"Tổng CHI theo danh mục: {tong_chi:,.0f} VND")
+    tam_dung()
 
 
 def hien_thi_danh_muc():
@@ -177,6 +194,37 @@ def hien_thi_danh_muc():
     for dm in danh_muc:
         loai = "Thu nhập" if dm["type"] == 1 else "Chi tiêu"
         print(f"ID: {dm['id']:<2} | {dm['value']:<12} | Loại: {loai}")
+    tam_dung()
+
+
+def demo_nhanh():
+    """Tạo nhanh dữ liệu mẫu để demo trên lớp mượt hơn."""
+    print("\n--- DEMO NHANH: TẠO DỮ LIỆU MẪU ---")
+
+    danh_muc = db_helper.get_all_categories()
+    if not danh_muc:
+        print("Không tìm thấy danh mục. Hãy kiểm tra dữ liệu hệ thống.")
+        tam_dung()
+        return
+
+    # Chọn 1 danh mục thu và 2 danh mục chi để tạo dữ liệu mẫu.
+    dm_thu = next((dm for dm in danh_muc if dm["type"] == 1), None)
+    ds_dm_chi = [dm for dm in danh_muc if dm["type"] == 0][:2]
+
+    if dm_thu is None or len(ds_dm_chi) < 2:
+        print("Danh mục mẫu chưa đủ (cần ít nhất 1 thu và 2 chi).")
+        tam_dung()
+        return
+
+    ngay_gio = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Tạo 3 giao dịch mẫu: 1 thu + 2 chi.
+    transaction.add_transaction(8000000, dm_thu["id"], "Demo: nhận lương", ngay_gio)
+    transaction.add_transaction(150000, ds_dm_chi[0]["id"], "Demo: chi ăn uống", ngay_gio)
+    transaction.add_transaction(300000, ds_dm_chi[1]["id"], "Demo: chi học tập", ngay_gio)
+
+    print(">> Đã tạo dữ liệu demo thành công (3 giao dịch).")
+    tam_dung()
 
 
 def chuong_trinh_chinh():
@@ -188,6 +236,7 @@ def chuong_trinh_chinh():
 
         if lua_chon == "1":
             hien_thi_giao_dich()
+            tam_dung()
         elif lua_chon == "2":
             them_giao_dich_moi()
         elif lua_chon == "3":
@@ -197,15 +246,19 @@ def chuong_trinh_chinh():
             if confirm.lower() == "y":
                 db_helper.reset_database()
                 print(">> Đã reset database.")
+            tam_dung()
         elif lua_chon == "5":
             hien_thi_bao_cao_thang()
         elif lua_chon == "6":
             hien_thi_tong_ket_danh_muc()
+        elif lua_chon == "7":
+            demo_nhanh()
         elif lua_chon == "0":
             print("Tạm biệt!")
             break
         else:
             print("Lựa chọn không hợp lệ.")
+            tam_dung()
 
 
 if __name__ == "__main__":
