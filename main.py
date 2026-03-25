@@ -1,23 +1,53 @@
 from modulo import db_helper, transaction
-import sys
+
 
 def main_menu():
     print("\n=== QUẢN LÝ TÀI CHÍNH CÁ NHÂN ===")
-    
-    # Hiển thị số dư nhanh
+
+    # Lấy số dư nhanh để người dùng nhìn tổng quan ngay khi mở menu
     stats = transaction.get_balance_summary()
     print(f"Số dư hiện tại: {stats['current_balance']:,.0f} VND")
-    print(f"(Tổng Thu: {stats['total_income']:,.0f} | Tổng Chi: {abs(stats['total_expense']):,.0f})")
-    
-    print("-" * 30)
+    print(
+        f"(Tổng Thu: {stats['total_income']:,.0f} | "
+        f"Tổng Chi: {abs(stats['total_expense']):,.0f})"
+    )
+
+    print("-" * 45)
     print("1. Xem danh sách giao dịch")
     print("2. Thêm Thu/Chi mới")
     print("3. Xem danh sách Categories")
     print("4. Khởi tạo lại Database (Reset)")
+    print("5. Thống kê theo tháng & cảnh báo ngân sách")   # Commit 2
+    print("6. Tổng kết theo danh mục")                     # Commit 3
     print("0. Thoát")
-    
+
     choice = input("Lựa chọn của bạn: ")
     return choice
+from modulo import db_helper, transaction
+
+
+def main_menu():
+    print("\n=== QUẢN LÝ TÀI CHÍNH CÁ NHÂN ===")
+
+    # Hiển thị số dư tổng quan ngay khi mở menu.
+    stats = transaction.get_balance_summary()
+    print(f"Số dư hiện tại: {stats['current_balance']:,.0f} VND")
+    print(
+        f"(Tổng Thu: {stats['total_income']:,.0f} | "
+        f"Tổng Chi: {abs(stats['total_expense']):,.0f})"
+    )
+
+    print("-" * 45)
+    print("1. Xem danh sách giao dịch")
+    print("2. Thêm Thu/Chi mới")
+    print("3. Xem danh sách Categories")
+    print("4. Khởi tạo lại Database (Reset)")
+    print("5. Thống kê theo tháng & cảnh báo ngân sách")
+    print("6. Tổng kết theo danh mục")
+    print("0. Thoát")
+
+    return input("Lựa chọn của bạn: ")
+
 
 def show_transactions():
     txs = transaction.get_recent_transactions()
