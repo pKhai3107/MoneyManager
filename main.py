@@ -1,6 +1,7 @@
 
 from modulo import db_helper, transaction
 from datetime import datetime
+import random
 
 
 def xoa_man_hinh():
@@ -12,6 +13,14 @@ def xoa_man_hinh():
 def tam_dung(thong_bao="\nNhấn Enter để tiếp tục..."):
     """Tạm dừng để người dùng kịp đọc kết quả trên màn hình."""
     input(thong_bao)
+
+
+def thong_bao_bien_dong_so_du(danh_muc, so_tien):
+    """Hiển thị thông báo biến động số dư theo loại thu/chi."""
+    if danh_muc["type"] == 1:
+        print(f"🔔 Tài khoản của bạn vừa nhận {so_tien:,.0f} VND ({danh_muc['value']}).")
+    else:
+        print(f"🔔 Tài khoản của bạn đã trừ {so_tien:,.0f} VND ({danh_muc['value']}).")
 
 
 def nhap_so_nguyen(thong_bao):
@@ -101,6 +110,7 @@ def them_giao_dich_moi():
     # add_transaction sẽ tự xử lý dấu âm/dương theo loại category.
     transaction.add_transaction(so_tien, danh_muc_da_chon["id"], ghi_chu)
     print(">> Thêm thành công!")
+    thong_bao_bien_dong_so_du(danh_muc_da_chon, so_tien)
     tam_dung()
 
 
@@ -218,12 +228,20 @@ def demo_nhanh():
 
     ngay_gio = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # Tạo 3 giao dịch mẫu: 1 thu + 2 chi.
-    transaction.add_transaction(8000000, dm_thu["id"], "Demo: nhận lương", ngay_gio)
-    transaction.add_transaction(150000, ds_dm_chi[0]["id"], "Demo: chi ăn uống", ngay_gio)
-    transaction.add_transaction(300000, ds_dm_chi[1]["id"], "Demo: chi học tập", ngay_gio)
+    # Tạo dữ liệu ngẫu nhiên nhưng vẫn hợp lý để demo dễ nhìn.
+    thu_ngau_nhien = random.randint(6_000_000, 12_000_000)
+    chi_1_ngau_nhien = random.randint(80_000, 300_000)
+    chi_2_ngau_nhien = random.randint(120_000, 500_000)
 
-    print(">> Đã tạo dữ liệu demo thành công (3 giao dịch).")
+    # Tạo 3 giao dịch mẫu: 1 thu + 2 chi.
+    transaction.add_transaction(thu_ngau_nhien, dm_thu["id"], "Demo: thu nhập ngẫu nhiên", ngay_gio)
+    transaction.add_transaction(chi_1_ngau_nhien, ds_dm_chi[0]["id"], "Demo: chi tiêu ngẫu nhiên", ngay_gio)
+    transaction.add_transaction(chi_2_ngau_nhien, ds_dm_chi[1]["id"], "Demo: chi tiêu ngẫu nhiên", ngay_gio)
+
+    print(">> Đã tạo dữ liệu demo thành công (3 giao dịch ngẫu nhiên).")
+    print(f"   + Thu: {thu_ngau_nhien:,.0f} VND ({dm_thu['value']})")
+    print(f"   - Chi: {chi_1_ngau_nhien:,.0f} VND ({ds_dm_chi[0]['value']})")
+    print(f"   - Chi: {chi_2_ngau_nhien:,.0f} VND ({ds_dm_chi[1]['value']})")
     tam_dung()
 
 
