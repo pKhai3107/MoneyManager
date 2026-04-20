@@ -1,4 +1,3 @@
-
 from modulo import db_helper, transaction
 from datetime import datetime
 import random
@@ -18,9 +17,9 @@ def tam_dung(thong_bao="\nNhấn Enter để tiếp tục..."):
 def thong_bao_bien_dong_so_du(danh_muc, so_tien):
     """Hiển thị thông báo biến động số dư theo loại thu/chi."""
     if danh_muc["type"] == 1:
-        print(f"🔔 Tài khoản của bạn vừa nhận {so_tien:,.0f} VND ({danh_muc['value']}).")
+        print(f" Tài khoản của bạn vừa nhận {so_tien:,.0f} VND ({danh_muc['value']}).")
     else:
-        print(f"🔔 Tài khoản của bạn đã trừ {so_tien:,.0f} VND ({danh_muc['value']}).")
+        print(f" Tài khoản của bạn đã trừ {so_tien:,.0f} VND ({danh_muc['value']}).")
 
 
 def nhap_so_nguyen(thong_bao):
@@ -148,9 +147,9 @@ def hien_thi_bao_cao_thang():
 
     if vuot_han_muc:
         vuot_bao_nhieu = tong_chi - han_muc
-        print(f"⚠ CẢNH BÁO: Bạn đã vượt ngân sách {vuot_bao_nhieu:,.0f} VND!")
+        print(f"CẢNH BÁO: Bạn đã vượt ngân sách {vuot_bao_nhieu:,.0f} VND!")
     else:
-        print("✅ Bạn vẫn trong mức ngân sách.")
+        print("Bạn vẫn trong mức ngân sách.")
     tam_dung()
 
 
@@ -207,27 +206,9 @@ def hien_thi_danh_muc():
     tam_dung()
 
 
-def tao_du_lieu_demo(dm_thu, ds_dm_chi, so_tien_thu, so_tien_chi_1, so_tien_chi_2, nhan):
-    """Tạo 1 bộ dữ liệu demo gồm 1 thu + 2 chi."""
-    ngay_gio = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    transaction.add_transaction(so_tien_thu, dm_thu["id"], f"{nhan}: thu nhập", ngay_gio)
-    transaction.add_transaction(so_tien_chi_1, ds_dm_chi[0]["id"], f"{nhan}: chi tiêu 1", ngay_gio)
-    transaction.add_transaction(so_tien_chi_2, ds_dm_chi[1]["id"], f"{nhan}: chi tiêu 2", ngay_gio)
-
-
 def demo_nhanh():
-    """Tạo nhanh dữ liệu demo với nhiều kịch bản, gồm cả vượt hạn mức."""
+    """Tạo nhanh dữ liệu mẫu để demo trên lớp mượt hơn."""
     print("\n--- DEMO NHANH: TẠO DỮ LIỆU MẪU ---")
-    print("1. Kịch bản bình thường (không vượt hạn mức)")
-    print("2. Kịch bản vượt hạn mức")
-    print("3. Quét đủ 2 trường hợp (không vượt + vượt)")
-
-    lua_chon_demo = nhap_so_nguyen("Chọn kịch bản demo (1-3): ")
-    if lua_chon_demo not in (1, 2, 3):
-        print("Lựa chọn không hợp lệ.")
-        tam_dung()
-        return
 
     danh_muc = db_helper.get_all_categories()
     if not danh_muc:
@@ -244,65 +225,22 @@ def demo_nhanh():
         tam_dung()
         return
 
-    if lua_chon_demo == 1:
-        # Kịch bản không vượt hạn mức.
-        han_muc_demo = random.randint(1_500_000, 3_000_000)
-        thu = random.randint(6_000_000, 10_000_000)
-        chi_1 = random.randint(80_000, 250_000)
-        chi_2 = random.randint(100_000, 300_000)
+    ngay_gio = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        db_helper.set_budget_limit(han_muc_demo)
-        tao_du_lieu_demo(dm_thu, ds_dm_chi, thu, chi_1, chi_2, "Demo không vượt")
+    # Tạo dữ liệu ngẫu nhiên nhưng vẫn hợp lý để demo dễ nhìn.
+    thu_ngau_nhien = random.randint(6_000_000, 12_000_000)
+    chi_1_ngau_nhien = random.randint(80_000, 300_000)
+    chi_2_ngau_nhien = random.randint(120_000, 500_000)
 
-        print(">> Đã tạo dữ liệu demo KHÔNG VƯỢT hạn mức.")
-        print(f"   Hạn mức: {han_muc_demo:,.0f} VND")
-        print(f"   + Thu: {thu:,.0f} VND ({dm_thu['value']})")
-        print(f"   - Chi: {chi_1:,.0f} VND ({ds_dm_chi[0]['value']})")
-        print(f"   - Chi: {chi_2:,.0f} VND ({ds_dm_chi[1]['value']})")
+    # Tạo 3 giao dịch mẫu: 1 thu + 2 chi.
+    transaction.add_transaction(thu_ngau_nhien, dm_thu["id"], "Demo: thu nhập ngẫu nhiên", ngay_gio)
+    transaction.add_transaction(chi_1_ngau_nhien, ds_dm_chi[0]["id"], "Demo: chi tiêu ngẫu nhiên", ngay_gio)
+    transaction.add_transaction(chi_2_ngau_nhien, ds_dm_chi[1]["id"], "Demo: chi tiêu ngẫu nhiên", ngay_gio)
 
-    elif lua_chon_demo == 2:
-        # Kịch bản vượt hạn mức.
-        han_muc_demo = random.randint(250_000, 500_000)
-        thu = random.randint(2_000_000, 4_000_000)
-        chi_1 = random.randint(250_000, 450_000)
-        chi_2 = random.randint(300_000, 600_000)
-
-        db_helper.set_budget_limit(han_muc_demo)
-        tao_du_lieu_demo(dm_thu, ds_dm_chi, thu, chi_1, chi_2, "Demo vượt hạn mức")
-
-        tong_chi = chi_1 + chi_2
-        print(">> Đã tạo dữ liệu demo VƯỢT HẠN MỨC.")
-        print(f"   Hạn mức: {han_muc_demo:,.0f} VND")
-        print(f"   Tổng chi mẫu: {tong_chi:,.0f} VND")
-        print(f"   + Thu: {thu:,.0f} VND ({dm_thu['value']})")
-        print(f"   - Chi: {chi_1:,.0f} VND ({ds_dm_chi[0]['value']})")
-        print(f"   - Chi: {chi_2:,.0f} VND ({ds_dm_chi[1]['value']})")
-
-    else:
-        # Kịch bản đầy đủ: tạo cả 2 trường hợp để demo liên tục.
-        db_helper.set_budget_limit(2_500_000)
-        tao_du_lieu_demo(
-            dm_thu,
-            ds_dm_chi,
-            random.randint(7_000_000, 10_000_000),
-            random.randint(100_000, 250_000),
-            random.randint(120_000, 300_000),
-            "Demo đầy đủ - không vượt"
-        )
-
-        db_helper.set_budget_limit(400_000)
-        tao_du_lieu_demo(
-            dm_thu,
-            ds_dm_chi,
-            random.randint(2_500_000, 4_000_000),
-            random.randint(250_000, 450_000),
-            random.randint(300_000, 650_000),
-            "Demo đầy đủ - vượt"
-        )
-
-        print(">> Đã tạo dữ liệu demo ĐẦY ĐỦ (không vượt + vượt hạn mức).")
-        print("   Gợi ý: vào menu 5 để xem cảnh báo, menu 6 để xem tổng kết danh mục.")
-
+    print(">> Đã tạo dữ liệu demo thành công (3 giao dịch ngẫu nhiên).")
+    print(f"   + Thu: {thu_ngau_nhien:,.0f} VND ({dm_thu['value']})")
+    print(f"   - Chi: {chi_1_ngau_nhien:,.0f} VND ({ds_dm_chi[0]['value']})")
+    print(f"   - Chi: {chi_2_ngau_nhien:,.0f} VND ({ds_dm_chi[1]['value']})")
     tam_dung()
 
 
