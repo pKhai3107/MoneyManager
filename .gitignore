@@ -1,0 +1,14 @@
+# Python cache/artifacts
+__pycache__/
+*.py[cod]
+
+# Local virtual environments
+venv/
+.venv/
+
+# VS Code temporary runner file
+tempCodeRunnerFile.py
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
