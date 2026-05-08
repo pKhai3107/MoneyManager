@@ -3,7 +3,7 @@
 - **Database Architecture:** All database interactions MUST go through `modulo/db_helper.py`.
 - Do not write raw SQLite queries in other files.
 - **Style:** Follow PEP 8 strictly.
-    
+- **Rule** Using OOP style code for ezer usage and maintainace.
 ## 2. Testing & Workflow Mandates
 - Every new feature in the `modulo/` directory must have a corresponding test.
 - After making code changes, ALWAYS run `python -m unittest` to verify. Do not consider a task complete if tests fail.
