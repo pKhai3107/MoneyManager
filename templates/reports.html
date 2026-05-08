@@ -1,0 +1,879 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }} - MoneyManager{% endblock %}
+
+{% block content %}
+
+<section class="report-controls panel">
+
+  <div class="report-controls-copy">
+    <p class="eyebrow">Module riêng</p>
+
+    <h2>Báo cáo theo tháng</h2>
+
+    <div class="period-caption">
+      Bộ lọc tháng áp dụng cho toàn bộ báo cáo:
+      {{ selected_period_label }}
+      và so sánh với
+      {{ previous_period_label }}
+    </div>
+
+    <div class="report-meta-row">
+      <span class="report-meta-pill">Thu: {{ total_income|money }} VND</span>
+      <span class="report-meta-pill">Chi: {{ total_expense|money }} VND</span>
+      <span class="report-meta-pill">Số dư: {{ net_balance|money }} VND</span>
+    </div>
+  </div>
+
+  <form
+    class="period-filter"
+    method="get"
+    action="{{ url_for('reports_page') }}"
+  >
+
+    <label>
+      <span>Chọn tháng</span>
+
+      <select name="period">
+
+        {% for option in report_period_options %}
+          <option
+            value="{{ option.value }}"
+            {% if option.value == period %}selected{% endif %}
+          >
+            {{ option.label }}
+          </option>
+        {% endfor %}
+
+      </select>
+    </label>
+
+    <button type="submit" class="btn btn-primary">
+      Xem báo cáo
+    </button>
+
+  </form>
+
+</section>
+
+<section class="comparison-grid">
+
+  {% for card in comparison_cards %}
+
+    <article class="comparison-card">
+
+      <span>{{ card.title }}</span>
+
+      <strong>
+        {% if card.title != 'Số giao dịch' %}
+          {{ card.current|money }}
+        {% else %}
+          {{ card.current }}
+        {% endif %}
+      </strong>
+
+      <small>
+        Tháng trước:
+        {% if card.title != 'Số giao dịch' %}
+          {{ card.previous|money }}
+        {% else %}
+          {{ card.previous }}
+        {% endif %}
+      </small>
+
+      <div class="delta-pill {{ card.delta_trend }}">
+
+        {% if card.delta_value > 0 %}
+          ↑
+        {% elif card.delta_value < 0 %}
+          ↓
+        {% else %}
+          •
+        {% endif %}
+
+        {{ card.delta_text }}
+
+      </div>
+
+    </article>
+
+  {% endfor %}
+
+</section>
+
+<section class="report-banner panel">
+
+  <div>
+
+    <p class="panel-kicker">
+      Tổng hợp nhanh
+    </p>
+
+    <h2>
+      Biểu đồ và số liệu cho {{ selected_period_label }}
+    </h2>
+
+    <p>Xem nhanh biến động theo ngày, so sánh tháng và cơ cấu chi tiêu.</p>
+
+  </div>
+
+  <div class="report-banner-figure">
+    <strong>{{ net_balance|money }} VND</strong>
+    <span>số dư ròng tháng này</span>
+  </div>
+
+</section>
+
+<section class="module-grid module-grid-split">
+
+  <article class="panel panel-wide report-summary-panel">
+
+    <div class="panel-head">
+      <div>
+        <p class="panel-kicker">Biểu đồ</p>
+        <h2>Biến động theo ngày trong tháng</h2>
+      </div>
+    </div>
+
+    <div class="chart-frame">
+      <canvas id="dailyChart"></canvas>
+    </div>
+
+  </article>
+
+  <article class="panel panel-medium">
+
+    <div class="panel-head">
+      <div>
+        <p class="panel-kicker">So sánh</p>
+        <h2>Tháng này so với tháng trước</h2>
+      </div>
+    </div>
+
+    <div class="chart-frame chart-frame-sm">
+      <canvas id="comparisonChart"></canvas>
+    </div>
+
+  </article>
+
+</section>
+
+<section class="module-grid module-grid-split">
+
+  <article class="panel panel-wide report-transactions-panel">
+
+    <div class="panel-head">
+      <div>
+        <p class="panel-kicker">Bảng tổng hợp</p>
+        <h2>Danh mục nổi bật trong tháng</h2>
+      </div>
+    </div>
+
+    <div class="summary-table">
+
+      {% for row in report_category_summary %}
+
+        {% set percent = report_category_percentages[loop.index0] | int %}
+
+        <div class="summary-row summary-row-inline summary-row-share">
+
+          <strong>{{ row.category_name }}</strong>
+
+          <span>
+            {{ 'Thu' if row.category_type == 1 else 'Chi' }}
+          </span>
+
+          <span>
+            {{ row.transaction_count }} giao dịch
+          </span>
+
+          <span>
+            {{ row.total_amount|abs|money }} VND
+          </span>
+
+          <span class="summary-percent">
+            {{ percent }}%
+          </span>
+
+          <div class="percent-track">
+            <span
+              class="percent-fill"
+              data-width="{{ percent }}"
+            ></span>
+          </div>
+
+        </div>
+
+      {% else %}
+
+        <p class="empty-state">
+          Không có dữ liệu trong tháng đã chọn.
+        </p>
+
+      {% endfor %}
+
+    </div>
+
+    <div class="table-pagination report-pagination">
+      <div>
+        Hiển thị <strong>{{ category_pagination.display_start }}-{{ category_pagination.display_end }}</strong>
+        / <strong>{{ category_pagination.total_items }}</strong>
+      </div>
+
+      <div class="pagination-actions">
+        {% if category_pagination.has_prev %}
+          <a class="btn btn-mini btn-outline" href="{{ url_for('reports_page', period=period, category_page=category_pagination.prev_page, recent_page=recent_pagination.page) }}">Trước</a>
+        {% else %}
+          <span class="btn btn-mini btn-outline is-disabled">Trước</span>
+        {% endif %}
+
+        <span class="pagination-page">Trang <strong>{{ category_pagination.page }}</strong> / {{ category_pagination.total_pages }}</span>
+
+        {% if category_pagination.has_next %}
+          <a class="btn btn-mini btn-outline" href="{{ url_for('reports_page', period=period, category_page=category_pagination.next_page, recent_page=recent_pagination.page) }}">Sau</a>
+        {% else %}
+          <span class="btn btn-mini btn-outline is-disabled">Sau</span>
+        {% endif %}
+      </div>
+    </div>
+
+  </article>
+
+  <div class="sidebar-stack">
+    <article class="panel panel-medium">
+
+      <div class="panel-head">
+        <div>
+          <p class="panel-kicker">Danh mục</p>
+          <h2>Cơ cấu chi tiêu</h2>
+        </div>
+      </div>
+
+      <div class="chart-frame chart-frame-sm">
+        <canvas id="categoryReportChart"></canvas>
+      </div>
+
+    </article>
+
+    <article class="panel panel-medium">
+
+      <div class="panel-head">
+        <div>
+          <p class="panel-kicker">Biểu đồ tổng hợp</p>
+          <h2>Xu hướng 6 tháng gần đây</h2>
+        </div>
+      </div>
+
+      <div class="chart-frame chart-frame-sm">
+        <canvas id="monthlyTrendChart"></canvas>
+      </div>
+
+    </article>
+  </div>
+
+</section>
+
+<section class="module-grid">
+
+  <article class="panel panel-wide">
+
+    <div class="panel-head">
+      <div>
+        <p class="panel-kicker">Giao dịch</p>
+        <h2>Mới nhất trong tháng</h2>
+      </div>
+    </div>
+
+    <div class="report-transactions">
+
+      {% for item in recent_report_transactions %}
+
+        <div class="report-transaction-item">
+
+          <div>
+            <strong>{{ item.category_name }}</strong>
+            <span>{{ item.date }}</span>
+          </div>
+
+          <div class="amount-cell {{ 'income' if item.amount >= 0 else 'expense' }}">
+
+            {{ '+' if item.amount >= 0 else '-' }}
+            {{ item.amount|abs|money }}
+
+          </div>
+
+        </div>
+
+      {% else %}
+
+        <p class="empty-state">
+          Chưa có giao dịch nào trong tháng.
+        </p>
+
+      {% endfor %}
+
+    </div>
+
+    <div class="table-pagination report-pagination">
+      <div>
+        Hiển thị <strong>{{ recent_pagination.display_start }}-{{ recent_pagination.display_end }}</strong>
+        / <strong>{{ recent_pagination.total_items }}</strong>
+      </div>
+
+      <div class="pagination-actions">
+        {% if recent_pagination.has_prev %}
+          <a class="btn btn-mini btn-outline" href="{{ url_for('reports_page', period=period, recent_page=recent_pagination.prev_page) }}">Trước</a>
+        {% else %}
+          <span class="btn btn-mini btn-outline is-disabled">Trước</span>
+        {% endif %}
+
+        <span class="pagination-page">Trang <strong>{{ recent_pagination.page }}</strong> / {{ recent_pagination.total_pages }}</span>
+
+        {% if recent_pagination.has_next %}
+          <a class="btn btn-mini btn-outline" href="{{ url_for('reports_page', period=period, recent_page=recent_pagination.next_page) }}">Sau</a>
+        {% else %}
+          <span class="btn btn-mini btn-outline is-disabled">Sau</span>
+        {% endif %}
+      </div>
+    </div>
+
+  </article>
+
+</section>
+
+<script id="report-page-data" type="application/json">
+  {{ {
+    "dailyLabels": day_labels,
+    "dailyIncome": report_income_series,
+    "dailyExpense": report_expense_series,
+    "reportCategoryLabels": report_category_labels,
+    "reportCategoryValues": report_category_values,
+    "reportCategoryLegendLabels": report_category_legend_labels,
+    "comparisonLabels": comparison_chart_labels,
+    "comparisonCurrentValues": comparison_current_values,
+    "comparisonPreviousValues": comparison_previous_values,
+    "monthlyTrendLabels": report_monthly_labels,
+    "monthlyTrendIncome": report_monthly_income,
+    "monthlyTrendExpense": report_monthly_expense
+  } | tojson | safe }}
+</script>
+
+<script>
+
+  // =========================
+  // SAFE DATA
+  // =========================
+
+  const reportDataElement = document.getElementById('report-page-data');
+
+  const reportData = reportDataElement
+    ? JSON.parse(reportDataElement.textContent || '{}')
+    : {};
+
+  const dailyLabels = reportData.dailyLabels || [];
+
+  const dailyIncome = reportData.dailyIncome || [];
+
+  const dailyExpense = reportData.dailyExpense || [];
+
+  const reportCategoryLabels = reportData.reportCategoryLabels || [];
+
+  const reportCategoryValues = reportData.reportCategoryValues || [];
+
+  const reportCategoryLegendLabels = reportData.reportCategoryLegendLabels || [];
+
+  const comparisonLabels = reportData.comparisonLabels || [];
+
+  const comparisonCurrentValues = reportData.comparisonCurrentValues || [];
+
+  const comparisonPreviousValues = reportData.comparisonPreviousValues || [];
+
+  const monthlyTrendLabels = reportData.monthlyTrendLabels || [];
+
+  const monthlyTrendIncome = reportData.monthlyTrendIncome || [];
+
+  const monthlyTrendExpense = reportData.monthlyTrendExpense || [];
+
+
+  // =========================
+  // FORMAT MONEY
+  // =========================
+
+  function formatMoney(value) {
+    return Number(value).toLocaleString('vi-VN');
+  }
+
+
+  // =========================
+  // DAILY CHART
+  // =========================
+
+  const dailyChartCanvas = document.getElementById('dailyChart');
+
+  if (dailyChartCanvas) {
+
+    new Chart(dailyChartCanvas, {
+
+      type: 'line',
+
+      data: {
+
+        labels: dailyLabels,
+
+        datasets: [
+
+          {
+            label: 'Thu',
+
+            data: dailyIncome,
+
+            borderColor: '#10b981',
+
+            backgroundColor: 'rgba(16, 185, 129, 0.18)',
+
+            tension: 0,
+
+            fill: false,
+
+            borderWidth: 3,
+
+            pointBackgroundColor: '#10b981',
+
+            pointBorderColor: '#ffffff',
+
+            pointBorderWidth: 2,
+
+            pointRadius: 4,
+
+            pointHoverRadius: 5
+          },
+
+          {
+            label: 'Chi',
+
+            data: dailyExpense,
+
+            borderColor: '#f97316',
+
+            backgroundColor: 'rgba(249, 115, 22, 0.18)',
+
+            tension: 0,
+
+            fill: false,
+
+            borderWidth: 3,
+
+            pointBackgroundColor: '#f97316',
+
+            pointBorderColor: '#ffffff',
+
+            pointBorderWidth: 2,
+
+            pointRadius: 4,
+
+            pointHoverRadius: 5
+          }
+
+        ]
+      },
+
+      options: {
+
+        responsive: true,
+
+        maintainAspectRatio: false,
+
+        plugins: {
+
+          legend: {
+            labels: {
+              color: '#1f3f8b'
+            }
+          }
+        },
+
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+
+        scales: {
+
+          x: {
+
+            ticks: {
+              color: '#475569'
+            },
+
+            grid: {
+              color: 'rgba(100, 116, 139, 0.08)'
+            }
+          },
+
+          y: {
+
+            beginAtZero: true,
+
+            ticks: {
+
+              color: '#475569',
+
+              callback: function(value) {
+                return formatMoney(value);
+              }
+            },
+
+            grid: {
+              color: 'rgba(100, 116, 139, 0.08)'
+            },
+
+            title: {
+
+              display: true,
+
+              text: 'VND',
+
+              color: '#475569'
+            }
+          }
+        }
+      }
+    });
+  }
+
+
+  // =========================
+  // PIE CHART
+  // =========================
+
+  const categoryChartCanvas =
+    document.getElementById('categoryReportChart');
+
+  const hasCategoryData =
+    reportCategoryLegendLabels.length > 0 &&
+    reportCategoryValues.length > 0 &&
+    reportCategoryLegendLabels.length === reportCategoryValues.length;
+
+  if (categoryChartCanvas) {
+
+    new Chart(categoryChartCanvas, {
+
+      type: 'pie',
+
+      data: {
+
+        labels: hasCategoryData
+          ? reportCategoryLegendLabels
+          : ['No data'],
+
+        datasets: [
+
+          {
+
+            data: hasCategoryData
+              ? reportCategoryValues
+              : [1],
+
+            backgroundColor: [
+              '#2563eb', '#f97316', '#10b981', '#8b5cf6',
+              '#ef4444', '#f59e0b', '#06b6d4', '#ec4899'
+            ],
+
+            borderColor: '#ffffff',
+
+            borderWidth: 4,
+
+            hoverOffset: 15
+          }
+
+        ]
+      },
+
+      options: {
+
+        responsive: true,
+
+        maintainAspectRatio: false,
+
+        plugins: {
+
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: '#1f3f8b',
+              padding: 20,
+              usePointStyle: true,
+              boxWidth: 10,
+              font: {
+                size: 13
+              }
+            }
+          },
+
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                let label = context.label || '';
+                let value = context.parsed || 0;
+                let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                let percentage = total ? ((value / total) * 100).toFixed(1) + '%' : '0.0%';
+                return label + ': ' + formatMoney(value) + ' VND (' + percentage + ')';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+
+  // =========================
+  // COMPARISON CHART
+  // =========================
+
+  const comparisonChartCanvas =
+    document.getElementById('comparisonChart');
+
+  if (comparisonChartCanvas) {
+
+    new Chart(comparisonChartCanvas, {
+
+      type: 'bar',
+
+      data: {
+
+        labels: comparisonLabels,
+
+        datasets: [
+
+          {
+
+            label: 'Tháng này',
+
+            data: comparisonCurrentValues,
+
+            backgroundColor: 'rgba(37, 99, 235, 0.9)',
+
+            borderColor: '#1d4ed8',
+
+            borderWidth: 1,
+
+            borderRadius: 12
+          },
+
+          {
+
+            label: 'Tháng trước',
+
+            data: comparisonPreviousValues,
+
+            backgroundColor: 'rgba(249, 115, 22, 0.72)',
+
+            borderColor: '#ea580c',
+
+            borderWidth: 1,
+
+            borderRadius: 12
+          }
+
+        ]
+      },
+
+      options: {
+
+        responsive: true,
+
+        maintainAspectRatio: false,
+
+        plugins: {
+
+          legend: {
+            labels: {
+              color: '#1f3f8b'
+            }
+          }
+        },
+
+        scales: {
+
+          x: {
+
+            ticks: {
+              color: '#475569'
+            },
+
+            grid: {
+              color: 'rgba(100, 116, 139, 0.08)'
+            }
+          },
+
+          y: {
+
+            ticks: {
+
+              color: '#475569',
+
+              callback: function(value) {
+                return formatMoney(value);
+              }
+            },
+
+            grid: {
+              color: 'rgba(100, 116, 139, 0.08)'
+            }
+          }
+        }
+      }
+    });
+  }
+
+
+  // =========================
+  // MONTHLY TREND
+  // =========================
+
+  const monthlyTrendChartCanvas =
+    document.getElementById('monthlyTrendChart');
+
+  if (monthlyTrendChartCanvas) {
+
+    new Chart(monthlyTrendChartCanvas, {
+
+      type: 'line',
+
+      data: {
+
+        labels: monthlyTrendLabels.length
+          ? monthlyTrendLabels
+          : ['Chưa có dữ liệu'],
+
+        datasets: [
+
+          {
+
+            label: 'Thu',
+
+            data: monthlyTrendLabels.length
+              ? monthlyTrendIncome
+              : [0],
+
+            borderColor: '#10b981',
+
+            backgroundColor: 'rgba(16, 185, 129, 0.14)',
+
+            tension: 0,
+
+            fill: true,
+
+            borderWidth: 3,
+
+            pointBackgroundColor: '#10b981',
+
+            pointBorderColor: '#ffffff',
+
+            pointBorderWidth: 2,
+
+            pointRadius: 4,
+
+            pointHoverRadius: 5
+          },
+
+          {
+
+            label: 'Chi',
+
+            data: monthlyTrendLabels.length
+              ? monthlyTrendExpense
+              : [0],
+
+            borderColor: '#f97316',
+
+            backgroundColor: 'rgba(249, 115, 22, 0.14)',
+
+            tension: 0,
+
+            fill: true,
+
+            borderWidth: 3,
+
+            pointBackgroundColor: '#f97316',
+
+            pointBorderColor: '#ffffff',
+
+            pointBorderWidth: 2,
+
+            pointRadius: 4,
+
+            pointHoverRadius: 5
+          }
+
+        ]
+      },
+
+      options: {
+
+        responsive: true,
+
+        maintainAspectRatio: false,
+
+        plugins: {
+
+          legend: {
+            labels: {
+              color: '#1f3f8b'
+            }
+          }
+        },
+
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+
+        scales: {
+
+          x: {
+
+            ticks: {
+              color: '#475569'
+            },
+
+            grid: {
+              color: 'rgba(100, 116, 139, 0.08)'
+            }
+          },
+
+          y: {
+
+            beginAtZero: true,
+
+            ticks: {
+
+              color: '#475569',
+
+              callback: function(value) {
+                return formatMoney(value);
+              }
+            },
+
+            grid: {
+              color: 'rgba(100, 116, 139, 0.08)'
+            },
+
+            title: {
+
+              display: true,
+
+              text: 'VND',
+
+              color: '#475569'
+            }
+          }
+        }
+      }
+    });
+  }
+
+</script>
+
+{% endblock %}

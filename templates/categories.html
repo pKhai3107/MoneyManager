@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }} - MoneyManager{% endblock %}
+
+{% block content %}
+<section class="module-grid module-grid-split">
+  <article class="panel panel-wide">
+    <div class="panel-head">
+      <div>
+        <p class="panel-kicker">Tổ chức dữ liệu</p>
+        <h2>Danh mục thu - chi</h2>
+      </div>
+    </div>
+
+    <div class="category-summary-grid">
+      <article class="metric-card metric-card-compact">
+        <span>Chi tiêu</span>
+        <strong>{{ expense_categories|length }}</strong>
+        <small>nhóm đang dùng</small>
+      </article>
+      <article class="metric-card metric-card-compact">
+        <span>Thu nhập</span>
+        <strong>{{ income_categories|length }}</strong>
+        <small>nhóm đang dùng</small>
+      </article>
+    </div>
+
+    <div class="category-columns">
+      <div class="category-column">
+        <h3>Chi tiêu</h3>
+        {% for category in expense_categories %}
+          <div class="category-item">
+            <div>
+              <strong>{{ category.value }}</strong>
+              <span>Mã: {{ category.key }}</span>
+            </div>
+            <span class="badge badge-expense">Chi</span>
+          </div>
+        {% else %}
+          <p class="empty-state">Chưa có danh mục chi tiêu.</p>
+        {% endfor %}
+      </div>
+
+      <div class="category-column">
+        <h3>Thu nhập</h3>
+        {% for category in income_categories %}
+          <div class="category-item">
+            <div>
+              <strong>{{ category.value }}</strong>
+              <span>Mã: {{ category.key }}</span>
+            </div>
+            <span class="badge badge-income">Thu</span>
+          </div>
+        {% else %}
+          <p class="empty-state">Chưa có danh mục thu nhập.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </article>
+
+  <article class="panel panel-medium">
+    <div class="panel-head">
+      <div>
+        <p class="panel-kicker">Thêm danh mục</p>
+        <h2>Tạo nhóm mới</h2>
+      </div>
+    </div>
+
+    <form class="form-stack" action="{{ url_for('add_category') }}" method="post">
+      <label>
+        <span>Mã danh mục</span>
+        <input type="text" name="key" placeholder="food" required>
+      </label>
+
+      <label>
+        <span>Tên hiển thị</span>
+        <input type="text" name="category_name" placeholder="Ăn uống" required>
+      </label>
+
+      <label>
+        <span>Loại</span>
+        <select name="category_type" required>
+          <option value="0">Chi tiêu</option>
+          <option value="1">Thu nhập</option>
+        </select>
+      </label>
+
+      <button type="submit" class="btn btn-primary">Thêm danh mục</button>
+    </form>
+
+    <form class="delete-form" action="{{ url_for('delete_category') }}" method="post">
+      <label>
+        <span>Xóa theo mã</span>
+        <input type="text" name="key" placeholder="food">
+      </label>
+      <button type="submit" class="btn btn-secondary">Xóa danh mục</button>
+    </form>
+  </article>
+</section>
+{% endblock %}

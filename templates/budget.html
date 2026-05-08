@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }} - MoneyManager{% endblock %}
+
+{% block content %}
+<section class="module-grid">
+  <article class="panel panel-wide">
+    <div class="panel-head">
+      <div>
+        <p class="panel-kicker">Ngân sách</p>
+        <h2>Mức sử dụng hiện tại</h2>
+      </div>
+    </div>
+
+    <div class="budget-state">
+      <strong>
+        {% if budget_limit and budget_used >= 100 %}
+          Đã vượt ngân sách
+        {% elif budget_limit and budget_used >= 80 %}
+          Cần theo dõi sát
+        {% elif budget_limit %}
+          Đang an toàn
+        {% else %}
+          Chưa đặt hạn mức
+        {% endif %}
+      </strong>
+      <span>
+        {% if budget_limit %}
+          Còn {{ budget_remaining|money }} VND trong hạn mức.
+        {% else %}
+          Đặt một hạn mức để theo dõi mức chi tiêu dễ hơn.
+        {% endif %}
+      </span>
+    </div>
+
+    <div class="budget-overview">
+      <div class="budget-ring-wrap">
+        <div class="budget-ring" style="--progress: {{ budget_used }}%;">
+          <div>
+            <strong>{{ budget_used|round(1) }}%</strong>
+            <span>đã dùng</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="budget-info-grid">
+        <div class="budget-info-card">
+          <span>Hạn mức</span>
+          <strong>{{ budget_limit|money if budget_limit else '0' }} VND</strong>
+        </div>
+        <div class="budget-info-card">
+          <span>Đã chi tháng này</span>
+          <strong>{{ budget_spent|money }} VND</strong>
+        </div>
+        <div class="budget-info-card">
+          <span>Còn lại tháng này</span>
+          <strong>{{ budget_remaining|money }} VND</strong>
+        </div>
+      </div>
+    </div>
+
+    <form class="form-inline budget-form" action="{{ url_for('update_budget') }}" method="post">
+      <label>
+        <span>Cập nhật hạn mức</span>
+        <input type="number" name="budget_limit" min="0" step="1000" value="{{ budget_limit|round(0)|int if budget_limit else 0 }}">
+      </label>
+      <button type="submit" class="btn btn-primary">Lưu ngân sách</button>
+    </form>
+  </article>
+</section>
+{% endblock %}
