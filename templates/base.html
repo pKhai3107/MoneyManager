@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="{{ current_lang }}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}MoneyManager{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+  </head>
+  <body class="shell shell-{{ active_page }}">
+    <div class="shell-frame">
+      <aside class="sidebar">
+        <div>
+          <div class="brand">
+            <div class="brand-mark">MM</div>
+            <div>
+              <div class="brand-name">MoneyManager</div>
+            </div>
+          </div>
+
+          <nav class="module-nav" aria-label="Điều hướng chính">
+            <a class="module-link {% if active_page == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}" data-transition-link>{{ t('dashboard') }}</a>
+            <a class="module-link {% if active_page == 'transactions' %}active{% endif %}" href="{{ url_for('transactions_page') }}" data-transition-link>{{ t('transactions') }}</a>
+            <a class="module-link {% if active_page == 'categories' %}active{% endif %}" href="{{ url_for('categories_page') }}" data-transition-link>{{ t('categories') }}</a>
+            <a class="module-link {% if active_page == 'budget' %}active{% endif %}" href="{{ url_for('budget_page') }}" data-transition-link>{{ t('budget') }}</a>
+            <a class="module-link {% if active_page == 'reports' %}active{% endif %}" href="{{ url_for('reports_page') }}" data-transition-link>{{ t('reports') }}</a>
+          </nav>
+
+          <div class="sidebar-summary">
+            <span class="sidebar-summary-label">{{ t('language') }}</span>
+            <form class="language-switcher" action="{{ url_for('set_language') }}" method="post">
+              <select name="language" aria-label="{{ t('language') }}" onchange="this.form.submit()">
+                {% for option in supported_languages %}
+                  <option value="{{ option.code }}" {% if option.code == current_lang %}selected{% endif %}>
+                    {{ option.label }}
+                  </option>
+                {% endfor %}
+              </select>
+            </form>
+            <span class="sidebar-summary-label">{{ t('quick_overview') }}</span>
+            <strong>{{ current_balance_display }} VND</strong>
+            <small>{{ budget_used|round(1) }}% ngân sách đã dùng</small>
+          </div>
+        </div>
+
+        <form class="sidebar-action" action="{{ url_for('reset_database') }}" method="post" onsubmit="return confirm('Khởi tạo lại dữ liệu?');">
+          <button type="submit" class="btn btn-ghost">{{ t('reset_data') }}</button>
+        </form>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">{{ t('finance_dashboard') }}</p>
+            <h1 class="topbar-title">{{ page_title }}</h1>
+            <p class="topbar-subtitle">{{ page_subtitle }}</p>
+          </div>
+
+          <div class="topbar-action">
+            {% if active_page == 'reports' %}
+              <form action="{{ url_for('create_demo_data') }}" method="post" onsubmit="return confirm('Tạo dữ liệu demo để xem thử các view?');">
+                <button type="submit" class="btn btn-secondary">{{ t('create_demo') }}</button>
+              </form>
+            {% elif active_page == 'transactions' %}
+              <button type="button" class="btn btn-outline" data-open-add-modal>{{ t('add_transaction') }}</button>
+            {% else %}
+              <a class="btn btn-outline" href="{{ url_for('transactions_page', open_add=1) }}" data-transition-link>{{ t('add_transaction') }}</a>
+            {% endif %}
+          </div>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-stack">
+              {% for category, message in messages %}
+                <div class="flash flash-{{ category }}">{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <div class="workspace">
+          {% block content %}{% endblock %}
+        </div>
+
+        {% if active_page == 'transactions' %}
+          <div class="modal" id="addTransactionModal" aria-hidden="true" role="dialog" aria-modal="true" aria-label="{{ t('add_transaction') }}">
+            <div class="modal-backdrop" data-close-modal></div>
+            <div class="modal-panel" role="document">
+              <div class="modal-header">
+                <div>
+                  <p class="panel-kicker">{{ t('add_transaction') }}</p>
+                  <h2>Nhập dữ liệu</h2>
+                </div>
+                <button type="button" class="btn btn-outline btn-mini modal-close" data-close-modal aria-label="Đóng">Đóng</button>
+              </div>
+
+              <div class="modal-body">
+                <form class="form-stack" action="{{ url_for('add_transaction') }}" method="post">
+                  <label>
+                    <span>Số tiền</span>
+                    <input id="addTxAmount" type="number" name="amount" min="0" step="1000" placeholder="150000" required>
+                  </label>
+
+                  <label>
+                    <span>Danh mục</span>
+                    <select name="category_id" required>
+                      <optgroup label="Chi tiêu">
+                        {% for category in expense_categories %}
+                          <option value="{{ category.id }}">{{ category.value }}</option>
+                        {% endfor %}
+                      </optgroup>
+                      <optgroup label="Thu nhập">
+                        {% for category in income_categories %}
+                          <option value="{{ category.id }}">{{ category.value }}</option>
+                        {% endfor %}
+                      </optgroup>
+                    </select>
+                  </label>
+
+                  <label>
+                    <span>Thời gian</span>
+                    <input type="datetime-local" name="date">
+                  </label>
+
+                  <label>
+                    <span>Ghi chú</span>
+                    <textarea name="note" rows="3" placeholder="Ví dụ: ăn trưa, lương tháng 5..."></textarea>
+                  </label>
+
+                  <div class="form-actions">
+                    <button type="button" class="btn btn-outline" data-close-modal>Hủy</button>
+                    <button type="submit" class="btn btn-primary">Lưu giao dịch</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal" id="transactionDetailModal" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Xem chi tiết giao dịch">
+            <div class="modal-backdrop" data-close-detail-modal></div>
+            <div class="modal-panel" role="document">
+              <div class="modal-header">
+                <div>
+                  <p class="panel-kicker">Chi tiết</p>
+                  <h2>Giao dịch</h2>
+                </div>
+                <button type="button" class="btn btn-outline btn-mini modal-close" data-close-detail-modal aria-label="Đóng">Đóng</button>
+              </div>
+
+              <div class="modal-body">
+                <div class="detail-card">
+                  <div class="detail-hero">
+                    <span id="txDetailBadge" class="detail-badge">-</span>
+                    <strong id="txDetailCategory">-</strong>
+                    <p id="txDetailNote">-</p>
+                  </div>
+
+                  <div class="detail-grid">
+                    <div>
+                      <span>Ngày</span>
+                      <strong id="txDetailDate">-</strong>
+                    </div>
+                    <div>
+                      <span>Số tiền</span>
+                      <strong id="txDetailAmount">-</strong>
+                    </div>
+                    <div>
+                      <span>Loại</span>
+                      <strong id="txDetailType">-</strong>
+                    </div>
+                    <div>
+                      <span>Mã</span>
+                      <strong id="txDetailId">-</strong>
+                    </div>
+                  </div>
+
+                  <div class="detail-actions">
+                    <a id="txDetailEditLink" class="btn btn-outline" href="#">Sửa</a>
+                    <form id="txDetailDeleteForm" action="#" method="post" onsubmit="return confirm('Xóa giao dịch này?');">
+                      <button type="submit" class="btn btn-danger">Xóa</button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+
+        <footer class="app-footer">
+          <small>{{ t('footer_note') }}</small>
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>
