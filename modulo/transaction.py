@@ -5,7 +5,7 @@ from modulo.models import Transaction, Category
 class FinanceManager:
     """Quản lý các hoạt động tài chính (Thu/Chi, Danh mục)."""
 
-    def add_transaction(self, amount: float, category_id: int, note: Optional[str] = None) -> int:
+    def add_transaction(self, amount: float, category_id: int, note: Optional[str] = None, date: Optional[str] = None) -> int:
         """Thêm giao dịch mới, tự động xử lý dấu âm/dương dựa trên loại danh mục."""
         categories = self.get_all_categories()
         category = next((c for c in categories if c.id == category_id), None)
@@ -17,6 +17,8 @@ class FinanceManager:
         final_amount = abs(amount) if category.type == 1 else -abs(amount)
         
         transaction = Transaction.create_new(final_amount, category_id, note)
+        if date:
+            transaction.date = date
         
         return db_helper.create_transaction(
             transaction.date, 

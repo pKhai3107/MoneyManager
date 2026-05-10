@@ -101,83 +101,137 @@
   </a>
 </section>
 
+<script id="dashboard-inline-data" type="application/json">
+  {{ {
+      "chart_month_labels": chart_month_labels,
+      "chart_income_values": chart_income_values,
+      "chart_expense_values": chart_expense_values,
+      "category_labels": category_labels,
+      "category_values": category_values
+    } | tojson }}
+</script>
+
 <script>
-  const monthlyLabels = {{ chart_month_labels | tojson }};
-  const incomeValues = {{ chart_income_values | tojson }};
-  const expenseValues = {{ chart_expense_values | tojson }};
-  const categoryLabels = {{ category_labels | tojson }};
-  const categoryValues = {{ category_values | tojson }};
+  let monthlyChartInstance;
+  let categoryChartInstance;
 
-  new Chart(document.getElementById('monthlyChart'), {
-    type: 'bar',
-    data: {
-      labels: monthlyLabels.length ? monthlyLabels : ['No data'],
-      datasets: [
-        {
-          label: 'Thu',
-          data: incomeValues.length ? incomeValues : [0],
-          backgroundColor: 'rgba(16, 185, 129, 0.85)',
-          borderColor: '#10b981',
-          borderWidth: 1,
-          borderRadius: 8,
-        },
-        {
-          label: 'Chi',
-          data: expenseValues.length ? expenseValues : [0],
-          backgroundColor: 'rgba(249, 115, 22, 0.82)',
-          borderColor: '#ea580c',
-          borderWidth: 1,
-          borderRadius: 8,
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: '#1f3f8b', usePointStyle: true, padding: 20 } }
-      },
-      scales: {
-        x: {
-          ticks: { color: '#64748b' },
-          grid: { display: false }
-        },
-        y: {
-          ticks: { color: '#64748b' },
-          grid: { color: 'rgba(37, 99, 235, 0.06)' }
-        }
-      }
+  const renderDashboardCharts = (data) => {
+    const monthlyLabels = data.chart_month_labels || [];
+    const incomeValues = data.chart_income_values || [];
+    const expenseValues = data.chart_expense_values || [];
+    const categoryLabels = data.category_labels || [];
+    const categoryValues = data.category_values || [];
+
+    if (monthlyChartInstance) {
+      monthlyChartInstance.destroy();
     }
-  });
+    if (categoryChartInstance) {
+      categoryChartInstance.destroy();
+    }
 
-  new Chart(document.getElementById('categoryChart'), {
-    type: 'doughnut',
-    data: {
-      labels: categoryLabels.length ? categoryLabels : ['No data'],
-      datasets: [{
-        data: categoryValues.length ? categoryValues : [1],
-        backgroundColor: ['#2563eb', '#f97316', '#10b981', '#8b5cf6', '#ef4444', '#f59e0b', '#06b6d4', '#ec4899'],
-        borderColor: '#ffffff',
-        borderWidth: 4,
-        hoverOffset: 12
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'right',
-          labels: { 
-            color: '#1f3f8b',
-            boxWidth: 12,
-            padding: 15,
-            usePointStyle: true
+    monthlyChartInstance = new Chart(document.getElementById('monthlyChart'), {
+      type: 'bar',
+      data: {
+        labels: monthlyLabels.length ? monthlyLabels : ['No data'],
+        datasets: [
+          {
+            label: 'Thu',
+            data: incomeValues.length ? incomeValues : [0],
+            backgroundColor: 'rgba(16, 185, 129, 0.85)',
+            borderColor: '#10b981',
+            borderWidth: 1,
+            borderRadius: 8,
+          },
+          {
+            label: 'Chi',
+            data: expenseValues.length ? expenseValues : [0],
+            backgroundColor: 'rgba(249, 115, 22, 0.82)',
+            borderColor: '#ea580c',
+            borderWidth: 1,
+            borderRadius: 8,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#1f3f8b', usePointStyle: true, padding: 20 } }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#64748b' },
+            grid: { display: false }
+          },
+          y: {
+            ticks: { color: '#64748b' },
+            grid: { color: 'rgba(37, 99, 235, 0.06)' }
           }
         }
+      }
+    });
+
+    categoryChartInstance = new Chart(document.getElementById('categoryChart'), {
+      type: 'doughnut',
+      data: {
+        labels: categoryLabels.length ? categoryLabels : ['No data'],
+        datasets: [{
+          data: categoryValues.length ? categoryValues : [1],
+          backgroundColor: ['#2563eb', '#f97316', '#10b981', '#8b5cf6', '#ef4444', '#f59e0b', '#06b6d4', '#ec4899'],
+          borderColor: '#ffffff',
+          borderWidth: 4,
+          hoverOffset: 12
+        }]
       },
-      cutout: '72%'
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: {
+              color: '#1f3f8b',
+              boxWidth: 12,
+              padding: 15,
+              usePointStyle: true
+            }
+          }
+        },
+        cutout: '72%'
+      }
+    });
+  };
+
+  const inlineDataElement = document.getElementById('dashboard-inline-data');
+  let inlineData = {
+    chart_month_labels: [],
+    chart_income_values: [],
+    chart_expense_values: [],
+    category_labels: [],
+    category_values: []
+  };
+
+  if (inlineDataElement && inlineDataElement.textContent.trim()) {
+    try {
+      inlineData = JSON.parse(inlineDataElement.textContent);
+    } catch (_) {
+      inlineData = {
+        chart_month_labels: [],
+        chart_income_values: [],
+        chart_expense_values: [],
+        category_labels: [],
+        category_values: []
+      };
     }
-  });
+  }
+
+  if (inlineData.chart_month_labels.length || inlineData.category_labels.length) {
+    renderDashboardCharts(inlineData);
+  } else {
+    fetch('{{ url_for("dashboard_chart_data") }}')
+      .then((response) => response.json())
+      .then((payload) => renderDashboardCharts(payload))
+      .catch(() => renderDashboardCharts(inlineData));
+  }
 </script>
 {% endblock %}

@@ -3,16 +3,18 @@ from __future__ import annotations
 import calendar
 from datetime import datetime
 import math
+import os
 import re
 import unicodedata
 
-from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask import Flask, flash, jsonify, redirect, render_template, request, send_from_directory, session, url_for
 
 from modulo import db_helper, transaction
 
 
 app = Flask(__name__)
-app.secret_key = "money-manager-dev-key"
+app.secret_key = os.environ.get("MONEY_MANAGER_SECRET_KEY", "money-manager-dev-key")
+finance_manager = transaction.FinanceManager()
 
 
 SUPPORTED_LANGUAGES = [
@@ -91,10 +93,18 @@ def set_language() -> str:
     return redirect(request.referrer or url_for("dashboard"))
 
 
+@app.route("/favicon.ico")
+def favicon() -> object:
+    return send_from_directory(app.static_folder, "favicon.svg", mimetype="image/svg+xml")
+
+
 def _parse_datetime_local(value: str | None) -> str | None:
     if not value:
         return None
-    return datetime.strptime(value, "%Y-%m-%dT%H:%M").strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        return datetime.strptime(value, "%Y-%m-%dT%H:%M").strftime("%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return None
 
 
 def _parse_period(value: str | None) -> tuple[int, int, str]:
@@ -147,6 +157,19 @@ def _find_transaction(transaction_id: int) -> dict[str, object] | None:
     return next((item for item in db_helper.get_all_transactions() if item["id"] == transaction_id), None)
 
 
+def _dashboard_chart_payload() -> dict[str, list[object]]:
+    monthly_summary = list(reversed(db_helper.get_monthly_summary()[:6]))
+    category_summary = db_helper.get_category_summary()[:8]
+
+    return {
+        "chart_month_labels": [row["month"] for row in monthly_summary],
+        "chart_income_values": [float(row["total_income"] or 0) for row in monthly_summary],
+        "chart_expense_values": [abs(float(row["total_expense"] or 0)) for row in monthly_summary],
+        "category_labels": [row["category_name"] for row in category_summary],
+        "category_values": [abs(float(row["total_amount"] or 0)) for row in category_summary],
+    }
+
+
 def _seed_demo_transactions() -> tuple[bool, str]:
     if db_helper.get_database_stats()["total_transactions"] > 0:
         return False, "Đã có dữ liệu thực tế, không tạo thêm demo."
@@ -156,82 +179,45 @@ def _seed_demo_transactions() -> tuple[bool, str]:
     if not all(key in categories for key in required_keys):
         return False, "Thiếu danh mục mặc định để tạo dữ liệu demo."
 
-    today = datetime.now()
-    current_year, current_month = today.year, today.month
-    previous_year, previous_month = _shift_month(current_year, current_month, -1)
+    # Demo is deterministic for presentation: 6 months ending at 10/05/2026.
+    demo_end = datetime(2026, 5, 10, 20, 0, 0)
 
-    def build_demo_entries(year: int, month: int, income_plan: list[tuple[int, int, str, str]], expense_plan: list[tuple[int, int, str, str]]) -> list[tuple[str, int, int, str]]:
+    sample_transactions: list[tuple[str, int, int, str]] = []
+    month_offsets = list(range(-5, 1))
+
+    for month_index, offset in enumerate(month_offsets):
+        year, month = _shift_month(demo_end.year, demo_end.month, offset)
         last_day = calendar.monthrange(year, month)[1]
-        entries: list[tuple[str, int, int, str]] = []
+        max_day = demo_end.day if (year == demo_end.year and month == demo_end.month) else last_day
+
+        # Keep days <= max_day so the latest transaction is exactly the demo end date.
+        income_days = [1, 5, 9]
+        expense_days = [2, 4, 6, 8, 10]
+
+        income_plan = [
+            (income_days[0], 640000 + month_index * 35000, "salary", "Lương bán thời gian"),
+            (income_days[1], 320000 + month_index * 25000, "bonus", "Thu nhập thêm"),
+            (income_days[2], 280000 + month_index * 20000, "salary", "Dạy thêm"),
+        ]
+        expense_plan = [
+            (expense_days[0], 140000 + month_index * 10000, "food", "Ăn uống"),
+            (expense_days[1], 110000 + month_index * 9000, "transport", "Di chuyển"),
+            (expense_days[2], 180000 + month_index * 11000, "shopping", "Mua sắm"),
+            (expense_days[3], 160000 + month_index * 7000, "bill", "Hóa đơn"),
+            (expense_days[4], 90000 + month_index * 6000, "food", "Cafe và đồ ăn nhẹ"),
+        ]
 
         for day, amount, category_key, note_text in income_plan + expense_plan:
-            safe_day = min(day, last_day)
-            timestamp = f"{year:04d}-{month:02d}-{safe_day:02d}"
-            time_part = "08:00:00" if category_key in {"salary", "bonus"} else "12:30:00"
-            entries.append((f"{timestamp} {time_part}", amount, categories[category_key]["id"], note_text))
+            if day > max_day:
+                continue
 
-        return entries
-
-    current_income_plan = [
-        (1, 780000, "salary", "Lương đầu tháng"),
-        (5, 420000, "bonus", "Thu nhập thêm"),
-        (9, 650000, "salary", "Khoản cộng tác"),
-        (13, 520000, "bonus", "Thưởng nhỏ"),
-        (18, 600000, "salary", "Thanh toán công việc"),
-        (23, 700000, "bonus", "Hoa hồng"),
-        (28, 560000, "salary", "Lương cuối tháng"),
-    ]
-
-    current_expense_plan = [
-        (2, 180000, "food", "Ăn sáng"),
-        (4, 220000, "food", "Ăn trưa"),
-        (6, 160000, "transport", "Di chuyển"),
-        (8, 240000, "shopping", "Mua sắm nhỏ"),
-        (10, 190000, "food", "Cafe"),
-        (12, 260000, "bill", "Hóa đơn điện"),
-        (14, 170000, "food", "Ăn sáng"),
-        (16, 210000, "transport", "Xe cộ"),
-        (19, 280000, "shopping", "Mua đồ"),
-        (21, 200000, "food", "Ăn trưa"),
-        (24, 230000, "bill", "Hóa đơn nước"),
-        (27, 180000, "food", "Ăn tối"),
-        (29, 250000, "transport", "Di chuyển công việc"),
-        (31, 220000, "bill", "Điện thoại"),
-    ]
-
-    previous_income_plan = [
-        (1, 720000, "salary", "Lương tháng trước"),
-        (5, 380000, "bonus", "Thu nhập thêm"),
-        (9, 580000, "salary", "Khoản cộng tác"),
-        (13, 470000, "bonus", "Thưởng nhỏ"),
-        (18, 540000, "salary", "Thanh toán công việc"),
-        (23, 640000, "bonus", "Hoa hồng"),
-        (28, 500000, "salary", "Lương cuối tháng"),
-    ]
-
-    previous_expense_plan = [
-        (2, 160000, "food", "Ăn sáng"),
-        (4, 200000, "food", "Ăn trưa"),
-        (6, 140000, "transport", "Di chuyển"),
-        (8, 210000, "shopping", "Mua sắm nhỏ"),
-        (10, 170000, "food", "Cafe"),
-        (12, 240000, "bill", "Hóa đơn điện"),
-        (14, 150000, "food", "Ăn sáng"),
-        (16, 180000, "transport", "Xe cộ"),
-        (19, 250000, "shopping", "Mua đồ"),
-        (21, 190000, "food", "Ăn trưa"),
-        (24, 210000, "bill", "Hóa đơn nước"),
-        (27, 170000, "food", "Ăn tối"),
-        (29, 230000, "transport", "Di chuyển công việc"),
-        (31, 200000, "bill", "Điện thoại"),
-    ]
-
-    sample_transactions = build_demo_entries(current_year, current_month, current_income_plan, current_expense_plan)
-    sample_transactions += build_demo_entries(previous_year, previous_month, previous_income_plan, previous_expense_plan)
+            timestamp = f"{year:04d}-{month:02d}-{day:02d}"
+            time_part = "08:30:00" if category_key in {"salary", "bonus"} else "19:00:00"
+            sample_transactions.append((f"{timestamp} {time_part}", amount, categories[category_key]["id"], note_text))
 
     created_count = 0
     for date_value, amount_value, category_id, note_value in sample_transactions:
-        transaction.add_transaction(amount_value, category_id, note_value, date_value)
+        finance_manager.add_transaction(amount_value, category_id, note_value, date_value)
         created_count += 1
 
     return True, f"Đã tạo {created_count} giao dịch demo."
@@ -260,15 +246,9 @@ def _shared_context(active_page: str, page_title: str, page_subtitle: str) -> di
     all_categories = db_helper.get_all_categories()
     expense_categories = [item for item in all_categories if item["type"] == 0]
     income_categories = [item for item in all_categories if item["type"] == 1]
+    chart_payload = _dashboard_chart_payload()
     category_summary = db_helper.get_category_summary()[:8]
     monthly_summary = list(reversed(db_helper.get_monthly_summary()[:6]))
-
-    chart_month_labels = [row["month"] for row in monthly_summary]
-    chart_income_values = [float(row["total_income"] or 0) for row in monthly_summary]
-    chart_expense_values = [abs(float(row["total_expense"] or 0)) for row in monthly_summary]
-
-    category_labels = [row["category_name"] for row in category_summary]
-    category_values = [abs(float(row["total_amount"] or 0)) for row in category_summary]
 
     return {
         "active_page": active_page,
@@ -285,15 +265,21 @@ def _shared_context(active_page: str, page_title: str, page_subtitle: str) -> di
         "income_categories": income_categories,
         "category_summary": category_summary,
         "monthly_summary": monthly_summary,
-        "chart_month_labels": chart_month_labels,
-        "chart_income_values": chart_income_values,
-        "chart_expense_values": chart_expense_values,
-        "category_labels": category_labels,
-        "category_values": category_values,
+        "chart_month_labels": chart_payload["chart_month_labels"],
+        "chart_income_values": chart_payload["chart_income_values"],
+        "chart_expense_values": chart_payload["chart_expense_values"],
+        "category_labels": chart_payload["category_labels"],
+        "category_values": chart_payload["category_values"],
         "current_balance_display": _format_money(stats["current_balance"]),
         "total_income_display": _format_money(stats["total_income"]),
         "total_expense_display": _format_money(abs(stats["total_expense"])),
     }
+
+
+@app.route("/api/dashboard-chart-data")
+def dashboard_chart_data() -> object:
+    _ensure_db()
+    return jsonify(_dashboard_chart_payload())
 
 
 def _transaction_form_context(active_page: str, page_title: str, page_subtitle: str, search_query: str = "") -> dict[str, object]:
@@ -412,12 +398,16 @@ def add_transaction() -> str:
     note = request.form.get("note", default="").strip() or None
     date_value = _parse_datetime_local(request.form.get("date"))
 
-    if category_id is None or amount is None:
-        flash("Vui lòng nhập số tiền và chọn danh mục.", "error")
+    if category_id is None or amount is None or amount <= 0:
+        flash("Vui lòng nhập số tiền hợp lệ lớn hơn 0 và chọn danh mục.", "error")
+        return redirect(url_for("transactions_page"))
+
+    if not date_value:
+        flash("Vui lòng nhập ngày giao dịch hợp lệ.", "error")
         return redirect(url_for("transactions_page"))
 
     try:
-        transaction.add_transaction(amount, category_id, note, date_value)
+        finance_manager.add_transaction(amount, category_id, note, date_value)
         flash("Đã thêm giao dịch thành công.", "success")
     except ValueError as exc:
         flash(str(exc), "error")
@@ -440,8 +430,8 @@ def edit_transaction(transaction_id: int) -> str:
         note = request.form.get("note", default="").strip() or None
         date_value = _parse_datetime_local(request.form.get("date"))
 
-        if category_id is None or amount is None or not date_value:
-            flash("Vui lòng nhập đầy đủ thông tin giao dịch.", "error")
+        if category_id is None or amount is None or amount <= 0 or not date_value:
+            flash("Vui lòng nhập đầy đủ thông tin hợp lệ cho giao dịch.", "error")
             return redirect(url_for("edit_transaction", transaction_id=transaction_id))
 
         selected_category = next((item for item in categories if item["id"] == category_id), None)
@@ -686,8 +676,8 @@ def reports_page() -> str:
             },
             {
                 "title": "Số giao dịch",
-                "current": len(selected_transactions),
-                "previous": len(previous_transactions),
+                "current": len(visible_transactions),
+                "previous": len(visible_previous),
                 "delta_text": count_delta_text,
                 "delta_trend": count_delta_trend,
                 "delta_value": count_delta_value,
@@ -740,8 +730,8 @@ def reports_page() -> str:
 @app.route("/budget/update", methods=["POST"])
 def update_budget() -> str:
     budget_value = request.form.get("budget_limit", type=float)
-    if budget_value is None or budget_value < 0:
-        flash("Ngân sách không hợp lệ.", "error")
+    if budget_value is None or budget_value <= 0:
+        flash("Ngân sách phải lớn hơn 0.", "error")
         return redirect(url_for("budget_page"))
 
     db_helper.set_budget_limit(budget_value)
@@ -763,8 +753,9 @@ def create_demo_data() -> str:
     app.config["DATABASE_READY"] = True
     created, message = _seed_demo_transactions()
     flash(message if created else "Không tạo được dữ liệu demo.", "success" if created else "error")
-    return redirect(url_for("reports_page"))
+    return redirect(url_for("dashboard"))
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    debug_mode = os.environ.get("FLASK_DEBUG", "0").lower() in {"1", "true", "yes", "on"}
+    app.run(debug=debug_mode)
