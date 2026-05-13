@@ -14,7 +14,7 @@
 
 ## Lời cảm ơn
 
-Nhóm chúng em xin chân thành cảm ơn giảng viên hướng dẫn đã tận tình giảng dạy, định hướng và hỗ trợ trong quá trình thực hiện bài tập lớn. Những góp ý chuyên môn của thầy/cô là cơ sở quan trọng giúp nhóm hoàn thiện đề tài đúng hướng và đạt được kết quả tốt hơn.
+Nhóm chúng em xin chân thành cảm ơn giảng viên đã tận tình giảng dạy, định hướng và hỗ trợ trong quá trình thực hiện bài tập lớn. Những góp ý chuyên môn của thầy/cô là cơ sở quan trọng giúp nhóm hoàn thiện đề tài đúng hướng và đạt được kết quả tốt hơn.
 
 Nhóm cũng xin cảm ơn sự phối hợp của các thành viên trong quá trình tìm hiểu yêu cầu, xây dựng chương trình và hoàn thiện báo cáo. Do thời gian thực hiện còn hạn chế, báo cáo chắc chắn không tránh khỏi thiếu sót. Nhóm rất mong nhận được góp ý để tiếp tục hoàn thiện đề tài ở các giai đoạn sau.
 
