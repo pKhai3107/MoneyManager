@@ -6,27 +6,27 @@
 <section class="transaction-toolbar">
   <div class="chip-row">
     <a class="chip {% if transaction_type_filter == 'all' %}active{% endif %}" href="{{ url_for('transactions_page', q=search_query) }}">
-      Tất cả <span>{{ transaction_type_counts.all }}</span>
+      {{ t('all') }} <span>{{ transaction_type_counts.all }}</span>
     </a>
     <a class="chip {% if transaction_type_filter == 'income' %}active{% endif %}" href="{{ url_for('transactions_page', q=search_query, type='income') }}">
-      Thu <span>{{ transaction_type_counts.income }}</span>
+      {{ t('income') }} <span>{{ transaction_type_counts.income }}</span>
     </a>
     <a class="chip {% if transaction_type_filter == 'expense' %}active{% endif %}" href="{{ url_for('transactions_page', q=search_query, type='expense') }}">
-      Chi <span>{{ transaction_type_counts.expense }}</span>
+      {{ t('expense') }} <span>{{ transaction_type_counts.expense }}</span>
     </a>
   </div>
 
   <form class="search-bar search-bar-wide" method="get" action="{{ url_for('transactions_page') }}">
     <input type="hidden" name="type" value="{{ transaction_type_filter }}">
-    <input id="transactionSearch" type="search" name="q" value="{{ search_query }}" placeholder="Tìm theo danh mục, ghi chú hoặc ngày...">
-    <button type="submit" class="btn btn-outline">Tìm</button>
+    <input id="transactionSearch" type="search" name="q" value="{{ search_query }}" placeholder="{{ t('search_placeholder') }}">
+    <button type="submit" class="btn btn-outline">{{ t('search') }}</button>
   </form>
 </section>
 
 <section class="transaction-summary-strip module-tip">
   <div>
     <strong>{{ transaction_count_display }}</strong>
-    <span>giao dịch đang hiển thị</span>
+    <span>{{ t('search_results') }}</span>
   </div>
 </section>
 
@@ -34,8 +34,8 @@
   <article class="panel panel-wide">
     <div class="panel-head panel-head-tight">
       <div>
-        <p class="panel-kicker">Danh sách</p>
-        <h2>Bảng giao dịch</h2>
+        <p class="panel-kicker">{{ t('transaction_list') }}</p>
+        <h2>{{ t('transactions_table') }}</h2>
       </div>
     </div>
 
@@ -43,56 +43,56 @@
       <table class="transaction-table">
         <thead>
           <tr>
-            <th>Ngày</th>
-            <th>Danh mục</th>
-            <th>Ghi chú</th>
-            <th class="align-right">Số tiền</th>
-            <th>Loại</th>
-            <th class="align-right">Thao tác</th>
+            <th>{{ t('date') }}</th>
+            <th>{{ t('category') }}</th>
+            <th>{{ t('note') }}</th>
+            <th class="align-right">{{ t('amount') }}</th>
+            <th>{{ t('type') }}</th>
+            <th class="align-right">{{ t('action') }}</th>
           </tr>
         </thead>
         <tbody id="transactionTableBody">
           {% for item in transactions %}
             <tr class="transaction-row-clickable"
-                data-search="{{ item.date }} {{ item.category_name }} {{ item.note or '' }} {{ item.amount }}"
+              data-search="{{ item.date }} {{ category_label(item.category_key, item.category_name) }} {{ item.category_key }} {{ note_label(item.note) }} {{ item.note or '' }} {{ item.amount }}"
                 data-transaction-id="{{ item.id }}"
                 data-transaction-date="{{ item.date }}"
-                data-transaction-category="{{ item.category_name }}"
-                data-transaction-note="{{ item.note or '' }}"
+                data-transaction-category="{{ category_label(item.category_key, item.category_name) }}"
+              data-transaction-note="{{ note_label(item.note) }}"
                 data-transaction-amount="{{ item.amount }}"
                 data-transaction-amount-display="{{ item.amount|abs|money }} VND"
-                data-transaction-kind="{{ 'Thu nhập' if item.category_type == 1 else 'Chi tiêu' }}"
+                data-transaction-kind="{{ t('income_type') if item.category_type == 1 else t('expense_type') }}"
                 data-transaction-edit-url="{{ url_for('edit_transaction', transaction_id=item.id) }}"
                 data-transaction-delete-url="{{ url_for('delete_transaction', transaction_id=item.id) }}">
               <td>{{ item.date }}</td>
               <td>
                 <div class="table-category">
                   <span class="transaction-dot {{ 'income' if item.category_type == 1 else 'expense' }}"></span>
-                  <strong>{{ item.category_name }}</strong>
+                  <strong>{{ category_label(item.category_key, item.category_name) }}</strong>
                 </div>
               </td>
-              <td>{{ item.note or '-' }}</td>
+              <td>{{ note_label(item.note) or '-' }}</td>
               <td class="align-right amount-cell {{ 'income' if item.amount >= 0 else 'expense' }}">
                 {{ '+' if item.amount >= 0 else '-' }}{{ item.amount|abs|money }}
               </td>
               <td>
                 <span class="badge {{ 'badge-income' if item.category_type == 1 else 'badge-expense' }}">
-                  {{ 'Thu' if item.category_type == 1 else 'Chi' }}
+                  {{ t('income') if item.category_type == 1 else t('expense') }}
                 </span>
               </td>
               <td>
                 <div class="table-actions">
-                  <button type="button" class="btn btn-mini btn-outline" data-open-detail-modal>🔍 Chi tiết</button>
-                  <a class="btn btn-mini btn-outline" href="{{ url_for('edit_transaction', transaction_id=item.id) }}">Sửa</a>
-                  <form action="{{ url_for('delete_transaction', transaction_id=item.id) }}" method="post" onsubmit="return confirm('Xóa giao dịch này?');">
-                    <button type="submit" class="btn btn-mini btn-danger">Xóa</button>
+                  <button type="button" class="btn btn-mini btn-outline" data-open-detail-modal>🔍 {{ t('details') }}</button>
+                  <a class="btn btn-mini btn-outline" href="{{ url_for('edit_transaction', transaction_id=item.id) }}">{{ t('edit') }}</a>
+                  <form action="{{ url_for('delete_transaction', transaction_id=item.id) }}" method="post" data-confirm="{{ t('confirm_delete_transaction') }}" onsubmit="return confirm(this.dataset.confirm);">
+                    <button type="submit" class="btn btn-mini btn-danger">{{ t('delete') }}</button>
                   </form>
                 </div>
               </td>
             </tr>
           {% else %}
             <tr class="empty-row">
-              <td colspan="6">Chưa có giao dịch nào. Bấm “Thêm giao dịch” để nhập giao dịch đầu tiên.</td>
+              <td colspan="6">{{ t('no_transactions') }}</td>
             </tr>
           {% endfor %}
         </tbody>
@@ -101,30 +101,30 @@
             <td colspan="6">
               <div class="table-pagination">
                 <div>
-                  Hiển thị <strong>{{ pagination.display_start }}-{{ pagination.display_end }}</strong>
+                  {{ t('showing') }} <strong>{{ pagination.display_start }}-{{ pagination.display_end }}</strong>
                   / <strong>{{ pagination.total_items }}</strong>
                 </div>
 
                 <div class="pagination-actions">
                   {% if pagination.has_prev %}
-                    <a class="btn btn-mini btn-outline" href="{{ url_for('transactions_page', q=search_query, type=transaction_type_filter, page=pagination.prev_page) }}">Trước</a>
+                    <a class="btn btn-mini btn-outline" href="{{ url_for('transactions_page', q=search_query, type=transaction_type_filter, page=pagination.prev_page) }}">{{ t('previous') }}</a>
                   {% else %}
-                    <span class="btn btn-mini btn-outline is-disabled">Trước</span>
+                    <span class="btn btn-mini btn-outline is-disabled">{{ t('previous') }}</span>
                   {% endif %}
 
-                  <span class="pagination-page">Trang <strong>{{ pagination.page }}</strong> / {{ pagination.total_pages }}</span>
+                  <span class="pagination-page">{{ t('page') }} <strong>{{ pagination.page }}</strong> / {{ pagination.total_pages }}</span>
 
                   {% if pagination.has_next %}
-                    <a class="btn btn-mini btn-outline" href="{{ url_for('transactions_page', q=search_query, type=transaction_type_filter, page=pagination.next_page) }}">Sau</a>
+                    <a class="btn btn-mini btn-outline" href="{{ url_for('transactions_page', q=search_query, type=transaction_type_filter, page=pagination.next_page) }}">{{ t('next') }}</a>
                   {% else %}
-                    <span class="btn btn-mini btn-outline is-disabled">Sau</span>
+                    <span class="btn btn-mini btn-outline is-disabled">{{ t('next') }}</span>
                   {% endif %}
                 </div>
               </div>
             </td>
           </tr>
           <tr class="table-foot">
-            <td colspan="3"><strong>Tổng (đang lọc)</strong></td>
+            <td colspan="3"><strong>{{ t('filter_total') }}</strong></td>
             <td class="align-right">
               <div class="table-foot-stack">
                 <div class="income">+{{ transactions_total_income|money }}</div>

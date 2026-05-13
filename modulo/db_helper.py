@@ -49,6 +49,11 @@ def init_db():
             value TEXT NOT NULL
         )
     ''')
+
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date DESC)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_transactions_category_id ON transactions(category_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_categories_type ON categories(type)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_categories_key ON categories(key)')
     
     # Chèn categories mặc định
     default_categories = [
@@ -95,6 +100,24 @@ def get_all_categories():
     
     conn.close()
     return [dict(row) for row in rows]
+
+def get_transaction_by_id(transaction_id):
+    """Lấy một giao dịch theo ID."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT t.*, c.key as category_key, c.value as category_name, c.type as category_type
+        FROM transactions t
+        JOIN categories c ON t.category_id = c.id
+        WHERE t.id = ?
+        LIMIT 1
+    ''', (transaction_id,))
+
+    row = cursor.fetchone()
+    conn.close()
+
+    return dict(row) if row else None
 
 def get_categories_by_type(category_type):
     """Lấy categories theo loại (0: chi, 1: thu)."""
@@ -241,6 +264,24 @@ def get_database_stats():
     conn.close()
     return stats
 
+def get_recent_transactions(limit=12):
+    """Lấy danh sách giao dịch gần nhất."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT t.*, c.key as category_key, c.value as category_name, c.type as category_type
+        FROM transactions t
+        JOIN categories c ON t.category_id = c.id
+        ORDER BY t.date DESC
+        LIMIT ?
+    ''', (limit,))
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    return [dict(row) for row in rows]
+
 def reset_database():
     """Reset database về trạng thái ban đầu."""
     conn = get_connection()
@@ -288,7 +329,7 @@ def get_transactions_by_date_range(start_date, end_date):
     cursor = conn.cursor()
     
     cursor.execute('''
-        SELECT t.*, c.value as category_name, c.type as category_type
+        SELECT t.*, c.key as category_key, c.value as category_name, c.type as category_type
         FROM transactions t
         JOIN categories c ON t.category_id = c.id
         WHERE t.date BETWEEN ? AND ?
@@ -299,6 +340,92 @@ def get_transactions_by_date_range(start_date, end_date):
     conn.close()
     
     return [dict(row) for row in rows]
+
+def get_transactions_page(transaction_type='all', search_query='', page=1, per_page=10):
+    """Lấy giao dịch theo bộ lọc và phân trang."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    joins = 'FROM transactions t JOIN categories c ON t.category_id = c.id'
+    filters = []
+    params = []
+
+    if transaction_type == 'income':
+        filters.append('c.type = 1')
+    elif transaction_type == 'expense':
+        filters.append('c.type = 0')
+
+    query_text = search_query.strip().lower()
+    if query_text:
+        like_value = f'%{query_text}%'
+        filters.append('(' + ' OR '.join([
+            'LOWER(t.date) LIKE ?',
+            'LOWER(COALESCE(t.note, "")) LIKE ?',
+            'LOWER(c.key) LIKE ?',
+            'LOWER(c.value) LIKE ?',
+            'CAST(t.amount AS TEXT) LIKE ?',
+        ]) + ')')
+        params.extend([like_value] * 4)
+        params.append(f'%{search_query.strip()}%')
+
+    where_clause = f" WHERE {' AND '.join(filters)}" if filters else ''
+
+    cursor.execute(
+        f'SELECT COUNT(*) {joins}{where_clause}',
+        params,
+    )
+    total_items = cursor.fetchone()[0]
+
+    cursor.execute(
+        f'''
+        SELECT
+            t.*, c.key as category_key, c.value as category_name, c.type as category_type
+        {joins}
+        {where_clause}
+        ORDER BY t.date DESC
+        LIMIT ? OFFSET ?
+        ''',
+        params + [per_page, (page - 1) * per_page],
+    )
+    rows = cursor.fetchall()
+
+    cursor.execute(
+        '''
+        SELECT
+            COUNT(*) as total,
+            SUM(CASE WHEN c.type = 1 THEN 1 ELSE 0 END) as income,
+            SUM(CASE WHEN c.type = 0 THEN 1 ELSE 0 END) as expense
+        FROM transactions t
+        JOIN categories c ON t.category_id = c.id
+        '''
+    )
+    counts_row = cursor.fetchone()
+
+    cursor.execute(
+        f'''
+        SELECT
+            COALESCE(SUM(CASE WHEN t.amount > 0 THEN t.amount ELSE 0 END), 0) as total_income,
+            COALESCE(ABS(SUM(CASE WHEN t.amount < 0 THEN t.amount ELSE 0 END)), 0) as total_expense
+        {joins}
+        {where_clause}
+        ''',
+        params,
+    )
+    totals_row = cursor.fetchone()
+
+    conn.close()
+
+    return {
+        'transactions': [dict(row) for row in rows],
+        'total_items': total_items,
+        'total_income': float(totals_row['total_income'] or 0),
+        'total_expense': float(totals_row['total_expense'] or 0),
+        'type_counts': {
+            'all': int(counts_row['total'] or 0),
+            'income': int(counts_row['income'] or 0),
+            'expense': int(counts_row['expense'] or 0),
+        },
+    }
 
 def get_monthly_summary(year=None, month=None):
     """Lấy tổng kết theo tháng."""
@@ -336,6 +463,7 @@ def get_category_summary(start_date=None, end_date=None):
     
     query = '''
         SELECT 
+            c.key as category_key,
             c.value as category_name,
             c.type as category_type,
             SUM(t.amount) as total_amount,
@@ -349,13 +477,107 @@ def get_category_summary(start_date=None, end_date=None):
         query += ' WHERE t.date BETWEEN ? AND ?'
         params.extend([start_date, end_date])
     
-    query += ' GROUP BY c.id, c.value, c.type ORDER BY ABS(SUM(t.amount)) DESC'
+    query += ' GROUP BY c.id, c.key, c.value, c.type ORDER BY ABS(SUM(t.amount)) DESC'
     
     cursor.execute(query, params)
     rows = cursor.fetchall()
     conn.close()
     
     return [dict(row) for row in rows]
+
+def get_period_summary(start_date, end_date, excluded_note_pattern=None):
+    """Lấy tổng hợp số liệu trong một khoảng thời gian."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    query = '''
+        SELECT
+            COUNT(*) as transaction_count,
+            COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) as total_income,
+            COALESCE(ABS(SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END)), 0) as total_expense
+        FROM transactions
+        WHERE date BETWEEN ? AND ?
+    '''
+    params = [start_date, end_date]
+    if excluded_note_pattern:
+        query += ' AND COALESCE(note, "") NOT LIKE ?'
+        params.append(excluded_note_pattern)
+
+    cursor.execute(query, params)
+    row = cursor.fetchone()
+    conn.close()
+
+    return {
+        'transaction_count': int(row['transaction_count'] or 0) if row else 0,
+        'total_income': float(row['total_income'] or 0) if row else 0.0,
+        'total_expense': float(row['total_expense'] or 0) if row else 0.0,
+        'net_balance': float((row['total_income'] or 0) - (row['total_expense'] or 0)) if row else 0.0,
+    }
+
+def get_daily_summary(start_date, end_date, excluded_note_pattern=None):
+    """Lấy tổng hợp thu/chi theo ngày."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    query = '''
+        SELECT
+            substr(date, 1, 10) as day,
+            COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) as income,
+            COALESCE(ABS(SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END)), 0) as expense
+        FROM transactions
+        WHERE date BETWEEN ? AND ?
+    '''
+    params = [start_date, end_date]
+    if excluded_note_pattern:
+        query += ' AND COALESCE(note, "") NOT LIKE ?'
+        params.append(excluded_note_pattern)
+
+    query += ' GROUP BY substr(date, 1, 10) ORDER BY day'
+
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    conn.close()
+
+    return [dict(row) for row in rows]
+
+def get_transactions_by_date_range_page(start_date, end_date, page=1, per_page=5, excluded_note_pattern=None):
+    """Lấy giao dịch theo khoảng thời gian và phân trang."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    joins = 'FROM transactions t JOIN categories c ON t.category_id = c.id'
+    filters = ['t.date BETWEEN ? AND ?']
+    params = [start_date, end_date]
+
+    if excluded_note_pattern:
+        filters.append('COALESCE(t.note, "") NOT LIKE ?')
+        params.append(excluded_note_pattern)
+
+    where_clause = f" WHERE {' AND '.join(filters)}"
+
+    cursor.execute(
+        f'SELECT COUNT(*) {joins}{where_clause}',
+        params,
+    )
+    total_items = cursor.fetchone()[0]
+
+    cursor.execute(
+        f'''
+        SELECT t.*, c.key as category_key, c.value as category_name, c.type as category_type
+        {joins}
+        {where_clause}
+        ORDER BY t.date DESC
+        LIMIT ? OFFSET ?
+        ''',
+        params + [per_page, (page - 1) * per_page],
+    )
+    rows = cursor.fetchall()
+    conn.close()
+
+    return {
+        'transactions': [dict(row) for row in rows],
+        'total_items': total_items,
+    }
 
 def create_transaction(date, amount, category_id, note=None):
     """Tạo giao dịch mới."""
@@ -379,7 +601,7 @@ def get_all_transactions():
     cursor = conn.cursor()
     
     cursor.execute('''
-        SELECT t.*, c.value as category_name, c.type as category_type
+        SELECT t.*, c.key as category_key, c.value as category_name, c.type as category_type
         FROM transactions t
         JOIN categories c ON t.category_id = c.id
         ORDER BY t.date DESC

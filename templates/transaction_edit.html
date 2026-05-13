@@ -1,32 +1,32 @@
 {% extends "base.html" %}
 
-{% block title %}Sửa giao dịch - MoneyManager{% endblock %}
+{% block title %}{{ t('edit_transaction_title') }} - MoneyManager{% endblock %}
 
 {% block content %}
 <section class="module-grid module-grid-split">
   <article class="panel panel-wide">
     <div class="panel-head">
       <div>
-        <p class="panel-kicker">Thông tin hiện tại</p>
-        <h2>{{ transaction_row.category_name }}</h2>
+        <p class="panel-kicker">{{ t('current_info') }}</p>
+        <h2>{{ category_label(transaction_row.category_key, transaction_row.category_name) }}</h2>
       </div>
     </div>
 
     <div class="edit-preview">
       <div>
-        <span>Ngày</span>
+        <span>{{ t('date') }}</span>
         <strong>{{ transaction_row.date }}</strong>
       </div>
       <div>
-        <span>Số tiền</span>
+        <span>{{ t('amount') }}</span>
         <strong>{{ transaction_row.amount|abs|money }} VND</strong>
       </div>
       <div>
-        <span>Loại</span>
-        <strong>{{ 'Thu nhập' if transaction_row.category_type == 1 else 'Chi tiêu' }}</strong>
+        <span>{{ t('type') }}</span>
+        <strong>{{ t('income_type') if transaction_row.category_type == 1 else t('expense_type') }}</strong>
       </div>
       <div>
-        <span>Ghi chú</span>
+        <span>{{ t('note') }}</span>
         <strong>{{ transaction_row.note or '-' }}</strong>
       </div>
     </div>
@@ -35,41 +35,41 @@
   <article class="panel panel-medium">
     <div class="panel-head">
       <div>
-        <p class="panel-kicker">Chỉnh sửa</p>
-        <h2>Biểu mẫu cập nhật</h2>
+        <p class="panel-kicker">{{ t('edit_transaction') }}</p>
+        <h2>{{ t('update_form') }}</h2>
       </div>
     </div>
 
     <form class="form-stack" action="{{ url_for('edit_transaction', transaction_id=transaction_row.id) }}" method="post">
       <label>
-        <span>Số tiền</span>
+        <span>{{ t('amount') }}</span>
         <input type="number" name="amount" min="0" step="1000" value="{{ transaction_row.amount|abs|int }}" required>
       </label>
 
       <label>
-        <span>Danh mục</span>
+        <span>{{ t('category') }}</span>
         <select name="category_id" required>
           {% for category in categories %}
             <option value="{{ category.id }}" {% if category.id == transaction_row.category_id %}selected{% endif %}>
-              {{ category.value }}
+              {{ category_label(category.key, category.value) }} ({{ category.key }})
             </option>
           {% endfor %}
         </select>
       </label>
 
       <label>
-        <span>Thời gian</span>
+        <span>{{ t('time') }}</span>
         <input type="datetime-local" name="date" value="{{ transaction_row.date[:16].replace(' ', 'T') }}" required>
       </label>
 
       <label>
-        <span>Ghi chú</span>
+        <span>{{ t('note') }}</span>
         <textarea name="note" rows="3">{{ transaction_row.note or '' }}</textarea>
       </label>
 
       <div class="form-actions">
-        <a class="btn btn-outline" href="{{ url_for('transactions_page') }}">Hủy</a>
-        <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+        <a class="btn btn-outline" href="{{ url_for('transactions_page') }}">{{ t('cancel') }}</a>
+        <button type="submit" class="btn btn-primary">{{ t('update_changes') }}</button>
       </div>
     </form>
   </article>

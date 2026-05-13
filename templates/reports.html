@@ -7,21 +7,21 @@
 <section class="report-controls panel">
 
   <div class="report-controls-copy">
-    <p class="eyebrow">Module riêng</p>
+    <p class="eyebrow">{{ t('report_scope') }}</p>
 
-    <h2>Báo cáo theo tháng</h2>
+    <h2>{{ t('report_title') }}</h2>
 
     <div class="period-caption">
-      Bộ lọc tháng áp dụng cho toàn bộ báo cáo:
+      {{ t('selected_month_label') }}
       {{ selected_period_label }}
-      và so sánh với
+      {{ t('report_compare_with') }}
       {{ previous_period_label }}
     </div>
 
     <div class="report-meta-row">
-      <span class="report-meta-pill">Thu: {{ total_income|money }} VND</span>
-      <span class="report-meta-pill">Chi: {{ total_expense|money }} VND</span>
-      <span class="report-meta-pill">Số dư: {{ net_balance|money }} VND</span>
+      <span class="report-meta-pill">{{ t('report_total_income') }}: {{ total_income|money }} VND</span>
+      <span class="report-meta-pill">{{ t('report_total_expense') }}: {{ total_expense|money }} VND</span>
+      <span class="report-meta-pill">{{ t('report_net_balance') }}: {{ net_balance|money }} VND</span>
     </div>
   </div>
 
@@ -32,7 +32,7 @@
   >
 
     <label>
-      <span>Chọn tháng</span>
+      <span>{{ t('report_month_filter') }}</span>
 
       <select name="period">
 
@@ -49,7 +49,7 @@
     </label>
 
     <button type="submit" class="btn btn-primary">
-      Xem báo cáo
+      {{ t('report_view') }}
     </button>
 
   </form>
@@ -65,7 +65,7 @@
       <span>{{ card.title }}</span>
 
       <strong>
-        {% if card.title != 'Số giao dịch' %}
+        {% if card.title != t('report_transaction_count') %}
           {{ card.current|money }}
         {% else %}
           {{ card.current }}
@@ -73,8 +73,8 @@
       </strong>
 
       <small>
-        Tháng trước:
-        {% if card.title != 'Số giao dịch' %}
+        {{ t('report_period_previous') }}:
+        {% if card.title != t('report_transaction_count') %}
           {{ card.previous|money }}
         {% else %}
           {{ card.previous }}
@@ -105,21 +105,17 @@
 
   <div>
 
-    <p class="panel-kicker">
-      Tổng hợp nhanh
-    </p>
+    <p class="panel-kicker">{{ t('report_structure') }}</p>
 
-    <h2>
-      Biểu đồ và số liệu cho {{ selected_period_label }}
-    </h2>
+    <h2>{{ t('report_summary_title').format(period=selected_period_label) }}</h2>
 
-    <p>Xem nhanh biến động theo ngày, so sánh tháng và cơ cấu chi tiêu.</p>
+    <p>{{ t('report_caption') }}</p>
 
   </div>
 
   <div class="report-banner-figure">
     <strong>{{ net_balance|money }} VND</strong>
-    <span>số dư ròng tháng này</span>
+    <span>{{ t('report_balance_text') }}</span>
   </div>
 
 </section>
@@ -130,8 +126,8 @@
 
     <div class="panel-head">
       <div>
-        <p class="panel-kicker">Biểu đồ</p>
-        <h2>Biến động theo ngày trong tháng</h2>
+        <p class="panel-kicker">{{ t('chart') }}</p>
+        <h2>{{ t('daily_variation') }}</h2>
       </div>
     </div>
 
@@ -145,8 +141,8 @@
 
     <div class="panel-head">
       <div>
-        <p class="panel-kicker">So sánh</p>
-        <h2>Tháng này so với tháng trước</h2>
+        <p class="panel-kicker">{{ t('report_compare') }}</p>
+        <h2>{{ t('this_month_vs_last_month') }}</h2>
       </div>
     </div>
 
@@ -164,8 +160,8 @@
 
     <div class="panel-head">
       <div>
-        <p class="panel-kicker">Bảng tổng hợp</p>
-        <h2>Danh mục nổi bật trong tháng</h2>
+        <p class="panel-kicker">{{ t('summary') }}</p>
+        <h2>{{ t('report_table_title') }}</h2>
       </div>
     </div>
 
@@ -177,14 +173,14 @@
 
         <div class="summary-row summary-row-inline summary-row-share">
 
-          <strong>{{ row.category_name }}</strong>
+          <strong>{{ category_label(row.category_key, row.category_name) }}</strong>
 
           <span>
-            {{ 'Thu' if row.category_type == 1 else 'Chi' }}
+            {{ t('income') if row.category_type == 1 else t('expense') }}
           </span>
 
           <span>
-            {{ row.transaction_count }} giao dịch
+            {{ row.transaction_count }} {{ t('transactions') }}
           </span>
 
           <span>
@@ -206,9 +202,7 @@
 
       {% else %}
 
-        <p class="empty-state">
-          Không có dữ liệu trong tháng đã chọn.
-        </p>
+          <p class="empty-state">{{ t('report_no_data') }}</p>
 
       {% endfor %}
 
@@ -216,23 +210,23 @@
 
     <div class="table-pagination report-pagination">
       <div>
-        Hiển thị <strong>{{ category_pagination.display_start }}-{{ category_pagination.display_end }}</strong>
+        {{ t('showing') }} <strong>{{ category_pagination.display_start }}-{{ category_pagination.display_end }}</strong>
         / <strong>{{ category_pagination.total_items }}</strong>
       </div>
 
       <div class="pagination-actions">
         {% if category_pagination.has_prev %}
-          <a class="btn btn-mini btn-outline" href="{{ url_for('reports_page', period=period, category_page=category_pagination.prev_page, recent_page=recent_pagination.page) }}">Trước</a>
+          <a class="btn btn-mini btn-outline" href="{{ url_for('reports_page', period=period, category_page=category_pagination.prev_page, recent_page=recent_pagination.page) }}">{{ t('previous') }}</a>
         {% else %}
-          <span class="btn btn-mini btn-outline is-disabled">Trước</span>
+          <span class="btn btn-mini btn-outline is-disabled">{{ t('previous') }}</span>
         {% endif %}
 
-        <span class="pagination-page">Trang <strong>{{ category_pagination.page }}</strong> / {{ category_pagination.total_pages }}</span>
+        <span class="pagination-page">{{ t('page') }} <strong>{{ category_pagination.page }}</strong> / {{ category_pagination.total_pages }}</span>
 
         {% if category_pagination.has_next %}
-          <a class="btn btn-mini btn-outline" href="{{ url_for('reports_page', period=period, category_page=category_pagination.next_page, recent_page=recent_pagination.page) }}">Sau</a>
+          <a class="btn btn-mini btn-outline" href="{{ url_for('reports_page', period=period, category_page=category_pagination.next_page, recent_page=recent_pagination.page) }}">{{ t('next') }}</a>
         {% else %}
-          <span class="btn btn-mini btn-outline is-disabled">Sau</span>
+          <span class="btn btn-mini btn-outline is-disabled">{{ t('next') }}</span>
         {% endif %}
       </div>
     </div>
@@ -244,8 +238,8 @@
 
       <div class="panel-head">
         <div>
-          <p class="panel-kicker">Danh mục</p>
-          <h2>Cơ cấu chi tiêu</h2>
+          <p class="panel-kicker">{{ t('categories') }}</p>
+          <h2>{{ t('expense_structure') }}</h2>
         </div>
       </div>
 
@@ -259,8 +253,8 @@
 
       <div class="panel-head">
         <div>
-          <p class="panel-kicker">Biểu đồ tổng hợp</p>
-          <h2>Xu hướng 6 tháng gần đây</h2>
+          <p class="panel-kicker">{{ t('chart') }}</p>
+          <h2>{{ t('latest_six_months') }}</h2>
         </div>
       </div>
 
@@ -279,8 +273,8 @@
 
     <div class="panel-head">
       <div>
-        <p class="panel-kicker">Giao dịch</p>
-        <h2>Mới nhất trong tháng</h2>
+        <p class="panel-kicker">{{ t('transactions') }}</p>
+        <h2>{{ t('report_transactions_title') }}</h2>
       </div>
     </div>
 
@@ -291,7 +285,7 @@
         <div class="report-transaction-item">
 
           <div>
-            <strong>{{ item.category_name }}</strong>
+            <strong>{{ category_label(item.category_key, item.category_name) }}</strong>
             <span>{{ item.date }}</span>
           </div>
 
@@ -306,9 +300,7 @@
 
       {% else %}
 
-        <p class="empty-state">
-          Chưa có giao dịch nào trong tháng.
-        </p>
+          <p class="empty-state">{{ t('report_all_time') }}</p>
 
       {% endfor %}
 
@@ -316,23 +308,23 @@
 
     <div class="table-pagination report-pagination">
       <div>
-        Hiển thị <strong>{{ recent_pagination.display_start }}-{{ recent_pagination.display_end }}</strong>
+        {{ t('showing') }} <strong>{{ recent_pagination.display_start }}-{{ recent_pagination.display_end }}</strong>
         / <strong>{{ recent_pagination.total_items }}</strong>
       </div>
 
       <div class="pagination-actions">
         {% if recent_pagination.has_prev %}
-          <a class="btn btn-mini btn-outline" href="{{ url_for('reports_page', period=period, recent_page=recent_pagination.prev_page) }}">Trước</a>
+          <a class="btn btn-mini btn-outline" href="{{ url_for('reports_page', period=period, recent_page=recent_pagination.prev_page) }}">{{ t('previous') }}</a>
         {% else %}
-          <span class="btn btn-mini btn-outline is-disabled">Trước</span>
+          <span class="btn btn-mini btn-outline is-disabled">{{ t('previous') }}</span>
         {% endif %}
 
-        <span class="pagination-page">Trang <strong>{{ recent_pagination.page }}</strong> / {{ recent_pagination.total_pages }}</span>
+        <span class="pagination-page">{{ t('page') }} <strong>{{ recent_pagination.page }}</strong> / {{ recent_pagination.total_pages }}</span>
 
         {% if recent_pagination.has_next %}
-          <a class="btn btn-mini btn-outline" href="{{ url_for('reports_page', period=period, recent_page=recent_pagination.next_page) }}">Sau</a>
+          <a class="btn btn-mini btn-outline" href="{{ url_for('reports_page', period=period, recent_page=recent_pagination.next_page) }}">{{ t('next') }}</a>
         {% else %}
-          <span class="btn btn-mini btn-outline is-disabled">Sau</span>
+          <span class="btn btn-mini btn-outline is-disabled">{{ t('next') }}</span>
         {% endif %}
       </div>
     </div>
@@ -340,6 +332,8 @@
   </article>
 
 </section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 
 <script id="report-page-data" type="application/json">
   {{ {
@@ -359,244 +353,156 @@
 </script>
 
 <script>
-
-  // =========================
-  // SAFE DATA
-  // =========================
-
   const reportDataElement = document.getElementById('report-page-data');
-
   const reportData = reportDataElement
     ? JSON.parse(reportDataElement.textContent || '{}')
     : {};
 
+  const formatMoney = (value) => Number(value).toLocaleString('vi-VN');
+
   const dailyLabels = reportData.dailyLabels || [];
-
   const dailyIncome = reportData.dailyIncome || [];
-
   const dailyExpense = reportData.dailyExpense || [];
-
-  const reportCategoryLabels = reportData.reportCategoryLabels || [];
-
   const reportCategoryValues = reportData.reportCategoryValues || [];
-
   const reportCategoryLegendLabels = reportData.reportCategoryLegendLabels || [];
-
   const comparisonLabels = reportData.comparisonLabels || [];
-
   const comparisonCurrentValues = reportData.comparisonCurrentValues || [];
-
   const comparisonPreviousValues = reportData.comparisonPreviousValues || [];
-
   const monthlyTrendLabels = reportData.monthlyTrendLabels || [];
-
   const monthlyTrendIncome = reportData.monthlyTrendIncome || [];
-
   const monthlyTrendExpense = reportData.monthlyTrendExpense || [];
-
-
-  // =========================
-  // FORMAT MONEY
-  // =========================
-
-  function formatMoney(value) {
-    return Number(value).toLocaleString('vi-VN');
-  }
-
-
-  // =========================
-  // DAILY CHART
-  // =========================
-
-  const dailyChartCanvas = document.getElementById('dailyChart');
-
-  if (dailyChartCanvas) {
-
-    new Chart(dailyChartCanvas, {
-
-      type: 'line',
-
-      data: {
-
-        labels: dailyLabels,
-
-        datasets: [
-
-          {
-            label: 'Thu',
-
-            data: dailyIncome,
-
-            borderColor: '#10b981',
-
-            backgroundColor: 'rgba(16, 185, 129, 0.18)',
-
-            tension: 0,
-
-            fill: false,
-
-            borderWidth: 3,
-
-            pointBackgroundColor: '#10b981',
-
-            pointBorderColor: '#ffffff',
-
-            pointBorderWidth: 2,
-
-            pointRadius: 4,
-
-            pointHoverRadius: 5
-          },
-
-          {
-            label: 'Chi',
-
-            data: dailyExpense,
-
-            borderColor: '#f97316',
-
-            backgroundColor: 'rgba(249, 115, 22, 0.18)',
-
-            tension: 0,
-
-            fill: false,
-
-            borderWidth: 3,
-
-            pointBackgroundColor: '#f97316',
-
-            pointBorderColor: '#ffffff',
-
-            pointBorderWidth: 2,
-
-            pointRadius: 4,
-
-            pointHoverRadius: 5
-          }
-
-        ]
-      },
-
-      options: {
-
-        responsive: true,
-
-        maintainAspectRatio: false,
-
-        plugins: {
-
-          legend: {
-            labels: {
-              color: '#1f3f8b'
-            }
-          }
-        },
-
-        interaction: {
-          mode: 'index',
-          intersect: false
-        },
-
-        scales: {
-
-          x: {
-
-            ticks: {
-              color: '#475569'
-            },
-
-            grid: {
-              color: 'rgba(100, 116, 139, 0.08)'
-            }
-          },
-
-          y: {
-
-            beginAtZero: true,
-
-            ticks: {
-
-              color: '#475569',
-
-              callback: function(value) {
-                return formatMoney(value);
-              }
-            },
-
-            grid: {
-              color: 'rgba(100, 116, 139, 0.08)'
-            },
-
-            title: {
-
-              display: true,
-
-              text: 'VND',
-
-              color: '#475569'
-            }
-          }
-        }
-      }
-    });
-  }
-
-
-  // =========================
-  // PIE CHART
-  // =========================
-
-  const categoryChartCanvas =
-    document.getElementById('categoryReportChart');
 
   const hasCategoryData =
     reportCategoryLegendLabels.length > 0 &&
     reportCategoryValues.length > 0 &&
     reportCategoryLegendLabels.length === reportCategoryValues.length;
 
-  if (categoryChartCanvas) {
+  const createOnVisible = (canvasId, renderChart) => {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) {
+      return;
+    }
 
-    new Chart(categoryChartCanvas, {
+    if (!('IntersectionObserver' in window)) {
+      renderChart(canvas);
+      return;
+    }
 
-      type: 'pie',
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          observer.disconnect();
+          renderChart(canvas);
+        }
+      });
+    }, { rootMargin: '120px 0px' });
 
+    observer.observe(canvas);
+  };
+
+  createOnVisible('dailyChart', (canvas) => {
+    new Chart(canvas, {
+      type: 'line',
       data: {
-
-        labels: hasCategoryData
-          ? reportCategoryLegendLabels
-          : ['No data'],
-
+        labels: dailyLabels,
         datasets: [
-
           {
+            label: "{{ t('income') }}",
+            data: dailyIncome,
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.18)',
+            tension: 0,
+            fill: false,
+            borderWidth: 3,
+            pointBackgroundColor: '#10b981',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 5
+          },
+          {
+            label: "{{ t('expense') }}",
+            data: dailyExpense,
+            borderColor: '#f97316',
+            backgroundColor: 'rgba(249, 115, 22, 0.18)',
+            tension: 0,
+            fill: false,
+            borderWidth: 3,
+            pointBackgroundColor: '#f97316',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 5
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            labels: {
+              color: '#1f3f8b'
+            }
+          }
+        },
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        scales: {
+          x: {
+            ticks: {
+              color: '#475569'
+            },
+            grid: {
+              color: 'rgba(100, 116, 139, 0.08)'
+            }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: '#475569',
+              callback: function(value) {
+                return formatMoney(value);
+              }
+            },
+            grid: {
+              color: 'rgba(100, 116, 139, 0.08)'
+            },
+            title: {
+              display: true,
+              text: 'VND',
+              color: '#475569'
+            }
+          }
+        }
+      }
+    });
+  });
 
-            data: hasCategoryData
-              ? reportCategoryValues
-              : [1],
-
+  createOnVisible('categoryReportChart', (canvas) => {
+    new Chart(canvas, {
+      type: 'pie',
+      data: {
+        labels: hasCategoryData ? reportCategoryLegendLabels : ["{{ t('no_data') }}"],
+        datasets: [
+          {
+            data: hasCategoryData ? reportCategoryValues : [1],
             backgroundColor: [
               '#2563eb', '#f97316', '#10b981', '#8b5cf6',
               '#ef4444', '#f59e0b', '#06b6d4', '#ec4899'
             ],
-
             borderColor: '#ffffff',
-
             borderWidth: 4,
-
             hoverOffset: 15
           }
-
         ]
       },
-
       options: {
-
         responsive: true,
-
         maintainAspectRatio: false,
-
         plugins: {
-
           legend: {
             position: 'bottom',
             labels: {
@@ -609,14 +515,13 @@
               }
             }
           },
-
           tooltip: {
             callbacks: {
               label: function(context) {
-                let label = context.label || '';
-                let value = context.parsed || 0;
-                let total = context.dataset.data.reduce((a, b) => a + b, 0);
-                let percentage = total ? ((value / total) * 100).toFixed(1) + '%' : '0.0%';
+                const label = context.label || '';
+                const value = context.parsed || 0;
+                const total = context.dataset.data.reduce((sum, item) => sum + item, 0);
+                const percentage = total ? ((value / total) * 100).toFixed(1) + '%' : '0.0%';
                 return label + ': ' + formatMoney(value) + ' VND (' + percentage + ')';
               }
             }
@@ -624,100 +529,58 @@
         }
       }
     });
-  }
+  });
 
-
-  // =========================
-  // COMPARISON CHART
-  // =========================
-
-  const comparisonChartCanvas =
-    document.getElementById('comparisonChart');
-
-  if (comparisonChartCanvas) {
-
-    new Chart(comparisonChartCanvas, {
-
+  createOnVisible('comparisonChart', (canvas) => {
+    new Chart(canvas, {
       type: 'bar',
-
       data: {
-
         labels: comparisonLabels,
-
         datasets: [
-
           {
-
-            label: 'Tháng này',
-
+            label: "{{ t('report_period_current') }}",
             data: comparisonCurrentValues,
-
             backgroundColor: 'rgba(37, 99, 235, 0.9)',
-
             borderColor: '#1d4ed8',
-
             borderWidth: 1,
-
             borderRadius: 12
           },
-
           {
-
-            label: 'Tháng trước',
-
+            label: "{{ t('report_period_previous') }}",
             data: comparisonPreviousValues,
-
             backgroundColor: 'rgba(249, 115, 22, 0.72)',
-
             borderColor: '#ea580c',
-
             borderWidth: 1,
-
             borderRadius: 12
           }
-
         ]
       },
-
       options: {
-
         responsive: true,
-
         maintainAspectRatio: false,
-
         plugins: {
-
           legend: {
             labels: {
               color: '#1f3f8b'
             }
           }
         },
-
         scales: {
-
           x: {
-
             ticks: {
               color: '#475569'
             },
-
             grid: {
               color: 'rgba(100, 116, 139, 0.08)'
             }
           },
-
           y: {
-
             ticks: {
-
               color: '#475569',
-
               callback: function(value) {
                 return formatMoney(value);
               }
             },
-
             grid: {
               color: 'rgba(100, 116, 139, 0.08)'
             }
@@ -725,154 +588,88 @@
         }
       }
     });
-  }
+  });
 
-
-  // =========================
-  // MONTHLY TREND
-  // =========================
-
-  const monthlyTrendChartCanvas =
-    document.getElementById('monthlyTrendChart');
-
-  if (monthlyTrendChartCanvas) {
-
-    new Chart(monthlyTrendChartCanvas, {
-
+  createOnVisible('monthlyTrendChart', (canvas) => {
+    new Chart(canvas, {
       type: 'line',
-
       data: {
-
-        labels: monthlyTrendLabels.length
-          ? monthlyTrendLabels
-          : ['Chưa có dữ liệu'],
-
+        labels: monthlyTrendLabels.length ? monthlyTrendLabels : ["{{ t('no_data') }}"],
         datasets: [
-
           {
-
-            label: 'Thu',
-
-            data: monthlyTrendLabels.length
-              ? monthlyTrendIncome
-              : [0],
-
+            label: "{{ t('income') }}",
+            data: monthlyTrendLabels.length ? monthlyTrendIncome : [0],
             borderColor: '#10b981',
-
             backgroundColor: 'rgba(16, 185, 129, 0.14)',
-
             tension: 0,
-
             fill: true,
-
             borderWidth: 3,
-
             pointBackgroundColor: '#10b981',
-
             pointBorderColor: '#ffffff',
-
             pointBorderWidth: 2,
-
             pointRadius: 4,
-
             pointHoverRadius: 5
           },
-
           {
-
-            label: 'Chi',
-
-            data: monthlyTrendLabels.length
-              ? monthlyTrendExpense
-              : [0],
-
+            label: "{{ t('expense') }}",
+            data: monthlyTrendLabels.length ? monthlyTrendExpense : [0],
             borderColor: '#f97316',
-
             backgroundColor: 'rgba(249, 115, 22, 0.14)',
-
             tension: 0,
-
             fill: true,
-
             borderWidth: 3,
-
             pointBackgroundColor: '#f97316',
-
             pointBorderColor: '#ffffff',
-
             pointBorderWidth: 2,
-
             pointRadius: 4,
-
             pointHoverRadius: 5
           }
-
         ]
       },
-
       options: {
-
         responsive: true,
-
         maintainAspectRatio: false,
-
         plugins: {
-
           legend: {
             labels: {
               color: '#1f3f8b'
             }
           }
         },
-
         interaction: {
           mode: 'index',
           intersect: false
         },
-
         scales: {
-
           x: {
-
             ticks: {
               color: '#475569'
             },
-
             grid: {
               color: 'rgba(100, 116, 139, 0.08)'
             }
           },
-
           y: {
-
             beginAtZero: true,
-
             ticks: {
-
               color: '#475569',
-
               callback: function(value) {
                 return formatMoney(value);
               }
             },
-
             grid: {
               color: 'rgba(100, 116, 139, 0.08)'
             },
-
             title: {
-
               display: true,
-
               text: 'VND',
-
               color: '#475569'
             }
           }
         }
       }
     });
-  }
+  });
 
 </script>
 

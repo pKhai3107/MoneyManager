@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const isEnglish = document.documentElement.lang === 'en';
   const links = document.querySelectorAll('[data-transition-link]');
   const addModal = document.querySelector('#addTransactionModal');
   const addModalOpenButtons = document.querySelectorAll('[data-open-add-modal]');
@@ -34,11 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       event.preventDefault();
-      document.body.classList.add('is-leaving');
-
-      window.setTimeout(() => {
-        window.location.href = href;
-      }, 140);
+      window.location.href = href;
     });
   });
 
@@ -49,9 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.body.classList.toggle('modal-open', open);
 
       if (open && addModalAmountInput) {
-        window.setTimeout(() => {
-          addModalAmountInput.focus();
-        }, 50);
+        addModalAmountInput.focus();
       }
     };
 
@@ -97,10 +92,10 @@ document.addEventListener('DOMContentLoaded', () => {
         txDetailBadge.className = `detail-badge ${amount >= 0 ? 'income' : 'expense'}`;
       }
       if (txDetailCategory) {
-        txDetailCategory.textContent = row.dataset.transactionCategory || 'Không xác định';
+        txDetailCategory.textContent = row.dataset.transactionCategory || (isEnglish ? 'Unknown' : 'Không xác định');
       }
       if (txDetailNote) {
-        txDetailNote.textContent = row.dataset.transactionNote || 'Không có ghi chú';
+        txDetailNote.textContent = row.dataset.transactionNote || (isEnglish ? 'No note' : 'Không có ghi chú');
       }
       if (txDetailDate) {
         txDetailDate.textContent = row.dataset.transactionDate || '-';

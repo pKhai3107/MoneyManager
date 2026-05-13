@@ -7,52 +7,50 @@
   <article class="panel panel-wide">
     <div class="panel-head">
       <div>
-        <p class="panel-kicker">Tổ chức dữ liệu</p>
-        <h2>Danh mục thu - chi</h2>
+        <p class="panel-kicker">{{ t('organization') }}</p>
+        <h2>{{ t('income_expense_categories') }}</h2>
       </div>
     </div>
 
     <div class="category-summary-grid">
       <article class="metric-card metric-card-compact">
-        <span>Chi tiêu</span>
+        <span>{{ t('expense_type') }}</span>
         <strong>{{ expense_categories|length }}</strong>
-        <small>nhóm đang dùng</small>
+        <small>{{ t('used_groups') }}</small>
       </article>
       <article class="metric-card metric-card-compact">
-        <span>Thu nhập</span>
+        <span>{{ t('income_type') }}</span>
         <strong>{{ income_categories|length }}</strong>
-        <small>nhóm đang dùng</small>
+        <small>{{ t('used_groups') }}</small>
       </article>
     </div>
 
     <div class="category-columns">
       <div class="category-column">
-        <h3>Chi tiêu</h3>
+        <h3>{{ t('expense_type') }}</h3>
         {% for category in expense_categories %}
           <div class="category-item">
             <div>
-              <strong>{{ category.value }}</strong>
-              <span>Mã: {{ category.key }}</span>
+              <strong>{{ category_label(category.key, category.value) }}</strong>
             </div>
-            <span class="badge badge-expense">Chi</span>
+            <span class="badge badge-expense">{{ t('expense') }}</span>
           </div>
         {% else %}
-          <p class="empty-state">Chưa có danh mục chi tiêu.</p>
+          <p class="empty-state">{{ t('existing_categories_empty_expense') }}</p>
         {% endfor %}
       </div>
 
       <div class="category-column">
-        <h3>Thu nhập</h3>
+        <h3>{{ t('income_type') }}</h3>
         {% for category in income_categories %}
           <div class="category-item">
             <div>
-              <strong>{{ category.value }}</strong>
-              <span>Mã: {{ category.key }}</span>
+              <strong>{{ category_label(category.key, category.value) }}</strong>
             </div>
-            <span class="badge badge-income">Thu</span>
+            <span class="badge badge-income">{{ t('income') }}</span>
           </div>
         {% else %}
-          <p class="empty-state">Chưa có danh mục thu nhập.</p>
+          <p class="empty-state">{{ t('existing_categories_empty_income') }}</p>
         {% endfor %}
       </div>
     </div>
@@ -61,39 +59,39 @@
   <article class="panel panel-medium">
     <div class="panel-head">
       <div>
-        <p class="panel-kicker">Thêm danh mục</p>
-        <h2>Tạo nhóm mới</h2>
+        <p class="panel-kicker">{{ t('add_category') }}</p>
+        <h2>{{ t('create_group') }}</h2>
       </div>
     </div>
 
     <form class="form-stack" action="{{ url_for('add_category') }}" method="post">
       <label>
-        <span>Mã danh mục</span>
-        <input type="text" name="key" placeholder="food" required>
+        <span>{{ t('category_code') }}</span>
+        <input type="text" name="key" placeholder="{{ t('category_code_placeholder') }}" required>
       </label>
 
       <label>
-        <span>Tên hiển thị</span>
-        <input type="text" name="category_name" placeholder="Ăn uống" required>
+        <span>{{ t('display_name') }}</span>
+        <input type="text" name="category_name" placeholder="{{ t('category_name_placeholder') }}" required>
       </label>
 
       <label>
-        <span>Loại</span>
+        <span>{{ t('category_type') }}</span>
         <select name="category_type" required>
-          <option value="0">Chi tiêu</option>
-          <option value="1">Thu nhập</option>
+          <option value="0">{{ t('expense_type') }}</option>
+          <option value="1">{{ t('income_type') }}</option>
         </select>
       </label>
 
-      <button type="submit" class="btn btn-primary">Thêm danh mục</button>
+      <button type="submit" class="btn btn-primary">{{ t('add_category') }}</button>
     </form>
 
     <form class="delete-form" action="{{ url_for('delete_category') }}" method="post">
       <label>
-        <span>Xóa theo mã</span>
-        <input type="text" name="key" placeholder="food">
+        <span>{{ t('delete_by_code') }}</span>
+        <input type="text" name="key" placeholder="{{ t('category_code_placeholder') }}">
       </label>
-      <button type="submit" class="btn btn-secondary">Xóa danh mục</button>
+      <button type="submit" class="btn btn-secondary">{{ t('delete_category') }}</button>
     </form>
   </article>
 </section>

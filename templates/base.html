@@ -4,13 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}MoneyManager{% endblock %}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="shortcut icon" href="{{ url_for('favicon') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <script src="{{ url_for('static', filename='app.js') }}" defer></script>
   </head>
   <body class="shell shell-{{ active_page }}">
@@ -24,7 +20,7 @@
             </div>
           </div>
 
-          <nav class="module-nav" aria-label="Điều hướng chính">
+          <nav class="module-nav" aria-label="{{ t('main_navigation') }}">
             <a class="module-link {% if active_page == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}" data-transition-link>{{ t('dashboard') }}</a>
             <a class="module-link {% if active_page == 'transactions' %}active{% endif %}" href="{{ url_for('transactions_page') }}" data-transition-link>{{ t('transactions') }}</a>
             <a class="module-link {% if active_page == 'categories' %}active{% endif %}" href="{{ url_for('categories_page') }}" data-transition-link>{{ t('categories') }}</a>
@@ -45,11 +41,11 @@
             </form>
             <span class="sidebar-summary-label">{{ t('quick_overview') }}</span>
             <strong>{{ current_balance_display }} VND</strong>
-            <small>{{ budget_used|round(1) }}% ngân sách đã dùng</small>
+            <small>{{ budget_used|round(1) }}% {{ t('budget_used_text') }}</small>
           </div>
         </div>
 
-        <form class="sidebar-action" action="{{ url_for('reset_database') }}" method="post" onsubmit="return confirm('Khởi tạo lại dữ liệu?');">
+        <form class="sidebar-action" action="{{ url_for('reset_database') }}" method="post" data-confirm="{{ t('confirm_reset') }}" onsubmit="return confirm(this.dataset.confirm);">
           <button type="submit" class="btn btn-ghost">{{ t('reset_data') }}</button>
         </form>
       </aside>
@@ -64,7 +60,7 @@
 
           <div class="topbar-action">
             {% if active_page == 'reports' %}
-              <form action="{{ url_for('create_demo_data') }}" method="post" onsubmit="return confirm('Tạo dữ liệu demo để xem thử các view?');">
+              <form action="{{ url_for('create_demo_data') }}" method="post" data-confirm="{{ t('confirm_demo') }}" onsubmit="return confirm(this.dataset.confirm);">
                 <button type="submit" class="btn btn-secondary">{{ t('create_demo') }}</button>
               </form>
             {% elif active_page == 'transactions' %}
@@ -96,62 +92,62 @@
               <div class="modal-header">
                 <div>
                   <p class="panel-kicker">{{ t('add_transaction') }}</p>
-                  <h2>Nhập dữ liệu</h2>
+                  <h2>{{ t('update_form') }}</h2>
                 </div>
-                <button type="button" class="btn btn-outline btn-mini modal-close" data-close-modal aria-label="Đóng">Đóng</button>
+                <button type="button" class="btn btn-outline btn-mini modal-close" data-close-modal aria-label="{{ t('close') }}">{{ t('close') }}</button>
               </div>
 
               <div class="modal-body">
                 <form class="form-stack" action="{{ url_for('add_transaction') }}" method="post">
                   <label>
-                    <span>Số tiền</span>
+                    <span>{{ t('amount') }}</span>
                     <input id="addTxAmount" type="number" name="amount" min="0" step="1000" placeholder="150000" required>
                   </label>
 
                   <label>
-                    <span>Danh mục</span>
+                    <span>{{ t('category') }}</span>
                     <select name="category_id" required>
-                      <optgroup label="Chi tiêu">
+                      <optgroup label="{{ t('expense_type') }}">
                         {% for category in expense_categories %}
-                          <option value="{{ category.id }}">{{ category.value }}</option>
+                          <option value="{{ category.id }}">{{ category_label(category.key, category.value) }} ({{ category.key }})</option>
                         {% endfor %}
                       </optgroup>
-                      <optgroup label="Thu nhập">
+                      <optgroup label="{{ t('income_type') }}">
                         {% for category in income_categories %}
-                          <option value="{{ category.id }}">{{ category.value }}</option>
+                          <option value="{{ category.id }}">{{ category_label(category.key, category.value) }} ({{ category.key }})</option>
                         {% endfor %}
                       </optgroup>
                     </select>
                   </label>
 
                   <label>
-                    <span>Thời gian</span>
+                    <span>{{ t('time') }}</span>
                     <input type="datetime-local" name="date">
                   </label>
 
                   <label>
-                    <span>Ghi chú</span>
-                    <textarea name="note" rows="3" placeholder="Ví dụ: ăn trưa, lương tháng 5..."></textarea>
+                    <span>{{ t('note') }}</span>
+                    <textarea name="note" rows="3" placeholder="{{ t('note') }}"></textarea>
                   </label>
 
                   <div class="form-actions">
-                    <button type="button" class="btn btn-outline" data-close-modal>Hủy</button>
-                    <button type="submit" class="btn btn-primary">Lưu giao dịch</button>
+                    <button type="button" class="btn btn-outline" data-close-modal>{{ t('cancel') }}</button>
+                    <button type="submit" class="btn btn-primary">{{ t('save_transaction') }}</button>
                   </div>
                 </form>
               </div>
             </div>
           </div>
 
-          <div class="modal" id="transactionDetailModal" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Xem chi tiết giao dịch">
+          <div class="modal" id="transactionDetailModal" aria-hidden="true" role="dialog" aria-modal="true" aria-label="{{ t('details') }}">
             <div class="modal-backdrop" data-close-detail-modal></div>
             <div class="modal-panel" role="document">
               <div class="modal-header">
                 <div>
-                  <p class="panel-kicker">Chi tiết</p>
-                  <h2>Giao dịch</h2>
+                  <p class="panel-kicker">{{ t('details') }}</p>
+                  <h2>{{ t('transaction') }}</h2>
                 </div>
-                <button type="button" class="btn btn-outline btn-mini modal-close" data-close-detail-modal aria-label="Đóng">Đóng</button>
+                <button type="button" class="btn btn-outline btn-mini modal-close" data-close-detail-modal aria-label="{{ t('close') }}">{{ t('close') }}</button>
               </div>
 
               <div class="modal-body">
@@ -164,27 +160,27 @@
 
                   <div class="detail-grid">
                     <div>
-                      <span>Ngày</span>
+                      <span>{{ t('date') }}</span>
                       <strong id="txDetailDate">-</strong>
                     </div>
                     <div>
-                      <span>Số tiền</span>
+                      <span>{{ t('amount') }}</span>
                       <strong id="txDetailAmount">-</strong>
                     </div>
                     <div>
-                      <span>Loại</span>
+                      <span>{{ t('type') }}</span>
                       <strong id="txDetailType">-</strong>
                     </div>
                     <div>
-                      <span>Mã</span>
+                      <span>{{ t('code') }}</span>
                       <strong id="txDetailId">-</strong>
                     </div>
                   </div>
 
                   <div class="detail-actions">
-                    <a id="txDetailEditLink" class="btn btn-outline" href="#">Sửa</a>
-                    <form id="txDetailDeleteForm" action="#" method="post" onsubmit="return confirm('Xóa giao dịch này?');">
-                      <button type="submit" class="btn btn-danger">Xóa</button>
+                    <a id="txDetailEditLink" class="btn btn-outline" href="#">{{ t('edit') }}</a>
+                    <form id="txDetailDeleteForm" action="#" method="post" data-confirm="{{ t('confirm_delete_transaction') }}" onsubmit="return confirm(this.dataset.confirm);">
+                      <button type="submit" class="btn btn-danger">{{ t('delete') }}</button>
                     </form>
                   </div>
                 </div>

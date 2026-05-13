@@ -7,28 +7,28 @@
   <article class="panel panel-wide">
     <div class="panel-head">
       <div>
-        <p class="panel-kicker">Ngân sách</p>
-        <h2>Mức sử dụng hiện tại</h2>
+        <p class="panel-kicker">{{ t('budget') }}</p>
+        <h2>{{ t('current_usage') }}</h2>
       </div>
     </div>
 
     <div class="budget-state">
       <strong>
         {% if budget_limit and budget_used >= 100 %}
-          Đã vượt ngân sách
+          {{ t('budget_state_over') }}
         {% elif budget_limit and budget_used >= 80 %}
-          Cần theo dõi sát
+          {{ t('budget_state_watch') }}
         {% elif budget_limit %}
-          Đang an toàn
+          {{ t('budget_state_safe') }}
         {% else %}
-          Chưa đặt hạn mức
+          {{ t('budget_state_none') }}
         {% endif %}
       </strong>
       <span>
         {% if budget_limit %}
-          Còn {{ budget_remaining|money }} VND trong hạn mức.
+          {{ t('budget_remaining_text').format(amount=budget_remaining|money) }}
         {% else %}
-          Đặt một hạn mức để theo dõi mức chi tiêu dễ hơn.
+          {{ t('budget_empty_text') }}
         {% endif %}
       </span>
     </div>
@@ -38,22 +38,22 @@
         <div class="budget-ring" style="--progress: {{ budget_used }}%;">
           <div>
             <strong>{{ budget_used|round(1) }}%</strong>
-            <span>đã dùng</span>
+            <span>{{ t('used') }}</span>
           </div>
         </div>
       </div>
 
       <div class="budget-info-grid">
         <div class="budget-info-card">
-          <span>Hạn mức</span>
+          <span>{{ t('limit') }}</span>
           <strong>{{ budget_limit|money if budget_limit else '0' }} VND</strong>
         </div>
         <div class="budget-info-card">
-          <span>Đã chi tháng này</span>
+          <span>{{ t('spent_this_month') }}</span>
           <strong>{{ budget_spent|money }} VND</strong>
         </div>
         <div class="budget-info-card">
-          <span>Còn lại tháng này</span>
+          <span>{{ t('remaining_this_month') }}</span>
           <strong>{{ budget_remaining|money }} VND</strong>
         </div>
       </div>
@@ -61,10 +61,10 @@
 
     <form class="form-inline budget-form" action="{{ url_for('update_budget') }}" method="post">
       <label>
-        <span>Cập nhật hạn mức</span>
+        <span>{{ t('update_budget') }}</span>
         <input type="number" name="budget_limit" min="0" step="1000" value="{{ budget_limit|round(0)|int if budget_limit else 0 }}">
       </label>
-      <button type="submit" class="btn btn-primary">Lưu ngân sách</button>
+      <button type="submit" class="btn btn-primary">{{ t('save_budget') }}</button>
     </form>
   </article>
 </section>
