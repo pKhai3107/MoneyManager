@@ -3,7 +3,7 @@
 
 **Đề 3: Hệ thống quản lý tài chính cá nhân**
 
-**Giảng viên hướng dẫn: Hoàng Hồng Sơn**
+**Giảng viên: Hoàng Hồng Sơn**
 
 **Nhóm thực hiện:**
 
