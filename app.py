@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import calendar
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import math
 import os
@@ -25,13 +25,13 @@ SUPPORTED_LANGUAGES = [
     {"code": "en"},
 ]
 
-_I18N_DIR = Path(__file__).with_name("i18n")
-
 
 def _load_file_translations() -> dict[str, dict[str, str]]:
+    """Nạp các file JSON dịch từ đĩa cho từng ngôn ngữ được hỗ trợ."""
     loaded: dict[str, dict[str, str]] = {}
+    i18n_dir = Path(__file__).with_name("i18n")
     for language in ("vi", "en"):
-        file_path = _I18N_DIR / f"{language}.json"
+        file_path = i18n_dir / f"{language}.json"
         if not file_path.exists():
             continue
         try:
@@ -55,17 +55,20 @@ _SUMMARY_CACHE_TTL_SECONDS = 60
 
 
 def _current_language() -> str:
+    """Trả về mã ngôn ngữ đang được lưu trong session."""
     language = session.get("language", "vi")
     return language if language in FILE_TRANSLATIONS else "vi"
 
 
 def t(key: str) -> str:
+    """Dịch một khóa theo ngôn ngữ hiện tại, nếu thiếu thì trả lại chính khóa đó."""
     language = _current_language()
     return FILE_TRANSLATIONS.get(language, FILE_TRANSLATIONS.get("vi", {})).get(key, key)
 
 
 @app.context_processor
 def inject_language_context() -> dict[str, object]:
+    """Đưa các hàm và nhãn ngôn ngữ vào mọi template Jinja."""
     return {
         "current_lang": _current_language(),
         "supported_languages": [
@@ -82,6 +85,7 @@ def inject_language_context() -> dict[str, object]:
 
 
 def _format_money(value: float) -> str:
+    """Định dạng số tiền theo kiểu ngắn gọn với dấu phân tách hàng nghìn."""
     return f"{value:,.0f}"
 
 
@@ -89,12 +93,14 @@ app.jinja_env.filters["money"] = _format_money
 
 
 def _slugify(value: str) -> str:
+    """Đổi tên danh mục thành một khóa an toàn ở dạng chữ thường."""
     normalized = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
     slug = re.sub(r"[^a-zA-Z0-9]+", "-", normalized.lower()).strip("-")
     return slug or "category"
 
 
 def _category_label(category_key: str, fallback: str | None = None) -> str:
+    """Trả về nhãn danh mục đã dịch hoặc một giá trị dự phòng dễ đọc."""
     label_key = f"category_label_{category_key}"
     label = t(label_key)
     if label != label_key:
@@ -103,6 +109,7 @@ def _category_label(category_key: str, fallback: str | None = None) -> str:
 
 
 def _note_label(note_text: str | None) -> str:
+    """Dịch lại nội dung ghi chú demo sang ngôn ngữ hiện tại nếu có thể."""
     if not note_text:
         return ""
 
@@ -112,6 +119,7 @@ def _note_label(note_text: str | None) -> str:
 
 @app.route("/language", methods=["POST"])
 def set_language() -> str:
+    """Lưu ngôn ngữ đã chọn vào session và quay lại trang trước đó."""
     language = request.form.get("language", "vi")
     session["language"] = language if language in FILE_TRANSLATIONS else "vi"
     return redirect(request.referrer or url_for("dashboard"))
@@ -119,10 +127,12 @@ def set_language() -> str:
 
 @app.route("/favicon.ico")
 def favicon() -> object:
+    """Phục vụ file favicon của ứng dụng từ thư mục static."""
     return send_from_directory(app.static_folder, "favicon.svg", mimetype="image/svg+xml")
 
 
 def _parse_datetime_local(value: str | None) -> str | None:
+    """Chuyển giá trị datetime-local sang định dạng thời gian của cơ sở dữ liệu."""
     if not value:
         return None
     try:
@@ -132,6 +142,7 @@ def _parse_datetime_local(value: str | None) -> str | None:
 
 
 def _parse_period(value: str | None) -> tuple[int, int, str]:
+    """Phân tích chuỗi YYYY-MM và mặc định về tháng hiện tại nếu dữ liệu không hợp lệ."""
     today = datetime.now()
     if not value:
         return today.year, today.month, f"{today.year:04d}-{today.month:02d}"
@@ -148,6 +159,7 @@ def _parse_period(value: str | None) -> tuple[int, int, str]:
 
 
 def _shift_month(year: int, month: int, offset: int) -> tuple[int, int]:
+    """Dịch cặp năm-tháng tiến hoặc lùi theo số tháng cho trước."""
     total_months = year * 12 + (month - 1) + offset
     shifted_year = total_months // 12
     shifted_month = total_months % 12 + 1
@@ -155,10 +167,12 @@ def _shift_month(year: int, month: int, offset: int) -> tuple[int, int]:
 
 
 def _month_label(year: int, month: int) -> str:
+    """Tạo nhãn hiển thị cho bộ chọn tháng và tiêu đề báo cáo."""
     return f"{t('month_label_prefix')} {month:02d}/{year}"
 
 
 def _flash_message(key: str, **values: object) -> str:
+    """Định dạng thông báo flash đã dịch với các giá trị truyền vào nếu có."""
     template = t(key)
     try:
         return template.format(**values)
@@ -167,11 +181,13 @@ def _flash_message(key: str, **values: object) -> str:
 
 
 def _invalidate_summary_cache() -> None:
+    """Xóa bộ nhớ đệm của các bản tổng hợp sau khi dữ liệu thay đổi."""
     session.pop(_SUMMARY_CACHE_KEY, None)
     session.modified = True
 
 
 def _cached_summary(cache_key: str, builder: Callable[[], object], ttl_seconds: int = _SUMMARY_CACHE_TTL_SECONDS) -> object:
+    """Trả về giá trị tổng hợp đã được cache, và dựng lại khi cache hết hạn."""
     request_cache = getattr(g, "summary_cache", None)
     if request_cache is None:
         request_cache = {}
@@ -182,7 +198,7 @@ def _cached_summary(cache_key: str, builder: Callable[[], object], ttl_seconds: 
 
     session_cache = session.get(_SUMMARY_CACHE_KEY, {})
     cached_entry = session_cache.get(cache_key)
-    now = datetime.utcnow().timestamp()
+    now = datetime.now(timezone.utc).timestamp()
     if isinstance(cached_entry, dict):
         cached_at = float(cached_entry.get("cached_at", 0))
         if now - cached_at <= ttl_seconds and "value" in cached_entry:
@@ -198,14 +214,17 @@ def _cached_summary(cache_key: str, builder: Callable[[], object], ttl_seconds: 
 
 
 def _cached_monthly_summary(limit: int = 6) -> list[dict[str, object]]:
+    """Trả về các dòng tổng hợp theo tháng gần nhất, có cache cho dashboard."""
     return _cached_summary(f"monthly_summary_{limit}", lambda: list(reversed(db_helper.get_monthly_summary()[:limit])))  # type: ignore[return-value]
 
 
 def _cached_category_summary(limit: int = 8) -> list[dict[str, object]]:
+    """Trả về các dòng tổng hợp danh mục nổi bật, có cache cho dashboard."""
     return _cached_summary(f"category_summary_{limit}", lambda: db_helper.get_category_summary()[:limit])  # type: ignore[return-value]
 
 
 def _build_report_period_options(limit: int = 12) -> list[dict[str, str]]:
+    """Tạo danh sách tháng để hiển thị trong bộ chọn của trang báo cáo."""
     today = datetime.now()
     options = []
 
@@ -218,6 +237,7 @@ def _build_report_period_options(limit: int = 12) -> list[dict[str, str]]:
 
 
 def _month_bounds(year: int, month: int) -> tuple[str, str]:
+    """Trả về mốc thời gian đầu và cuối của tháng đã cho."""
     start = datetime(year, month, 1, 0, 0, 0)
     end_day = calendar.monthrange(year, month)[1]
     end = datetime(year, month, end_day, 23, 59, 59)
@@ -225,6 +245,7 @@ def _month_bounds(year: int, month: int) -> tuple[str, str]:
 
 
 def _find_transaction(transaction_id: int) -> dict[str, object] | None:
+    """Tìm một giao dịch theo ID trong cơ sở dữ liệu."""
     return db_helper.get_transaction_by_id(transaction_id)
 
 
@@ -232,6 +253,7 @@ def _dashboard_chart_payload(
     monthly_summary: list[dict[str, object]],
     category_summary: list[dict[str, object]],
 ) -> dict[str, list[object]]:
+    """Chuyển dữ liệu tổng hợp sang đúng định dạng mà Chart.js cần."""
 
     return {
         "chart_month_labels": [row["month"] for row in monthly_summary],
@@ -243,6 +265,7 @@ def _dashboard_chart_payload(
 
 
 def _seed_demo_transactions() -> tuple[bool, str]:
+    """Tạo dữ liệu giao dịch mẫu cho chế độ demo khi database còn trống."""
     if db_helper.get_database_stats()["total_transactions"] > 0:
         return False, t("demo_data_exists")
 
@@ -294,6 +317,7 @@ def _seed_demo_transactions() -> tuple[bool, str]:
 
 
 def _ensure_db() -> None:
+    """Khởi tạo database một lần nếu ứng dụng chưa sẵn sàng."""
     if not app.config.get("DATABASE_READY", False):
         db_helper.init_db()
         app.config["DATABASE_READY"] = True
@@ -304,6 +328,7 @@ def _shared_context(
     page_title: str,
     page_subtitle: str,
 ) -> dict[str, object]:
+    """Tạo context dùng chung cho mọi trang chính."""
     _ensure_db()
 
     stats = db_helper.get_database_stats()
@@ -354,16 +379,21 @@ def _shared_context(
         "current_balance_display": _format_money(stats["current_balance"]),
         "total_income_display": _format_money(stats["total_income"]),
         "total_expense_display": _format_money(abs(stats["total_expense"])),
+        "current_month_balance_display": _format_money(float(month_summary["total_income"]) - float(month_summary["total_expense"])),
+        "current_month_income_display": _format_money(float(month_summary["total_income"])),
+        "current_month_expense_display": _format_money(float(month_summary["total_expense"])),
     }
 
 
 @app.route("/api/dashboard-chart-data")
 def dashboard_chart_data() -> object:
+    """Trả về dữ liệu biểu đồ của dashboard dưới dạng JSON."""
     _ensure_db()
-    return jsonify(_dashboard_chart_payload())
+    return jsonify(_summary_chart_data())
 
 
 def _transaction_form_context(active_page: str, page_title: str, page_subtitle: str, search_query: str = "") -> dict[str, object]:
+    """Mở rộng context chung bằng dữ liệu danh sách giao dịch và phân trang."""
     context = _shared_context(active_page, page_title, page_subtitle)
     transaction_type_filter = request.args.get("type", default="all")
     page = request.args.get("page", default=1, type=int) or 1
@@ -416,6 +446,7 @@ def _transaction_form_context(active_page: str, page_title: str, page_subtitle: 
 
 
 def _summary_chart_data() -> dict[str, list[object]]:
+    """Trả về dữ liệu biểu đồ dashboard đã được cache."""
     monthly_summary = _cached_monthly_summary()
     category_summary = _cached_category_summary()
     return _dashboard_chart_payload(monthly_summary, category_summary)
@@ -423,6 +454,7 @@ def _summary_chart_data() -> dict[str, list[object]]:
 
 @app.route("/")
 def dashboard() -> str:
+    """Hiển thị trang dashboard."""
     return render_template(
         "dashboard.html",
         **_shared_context(
@@ -435,6 +467,7 @@ def dashboard() -> str:
 
 @app.route("/transactions")
 def transactions_page() -> str:
+    """Hiển thị trang giao dịch kèm tìm kiếm và phân trang."""
     search_query = request.args.get("q", default="").strip()
     return render_template(
         "transactions.html",
@@ -449,6 +482,7 @@ def transactions_page() -> str:
 
 @app.route("/transactions/add", methods=["POST"])
 def add_transaction() -> str:
+    """Kiểm tra và lưu một giao dịch mới từ form thêm giao dịch."""
     category_id = request.form.get("category_id", type=int)
     amount = request.form.get("amount", type=float)
     note = request.form.get("note", default="").strip() or None
@@ -474,6 +508,7 @@ def add_transaction() -> str:
 
 @app.route("/transactions/<int:transaction_id>/edit", methods=["GET", "POST"])
 def edit_transaction(transaction_id: int) -> str:
+    """Hiển thị hoặc xử lý form sửa giao dịch."""
     transaction_row = _find_transaction(transaction_id)
     if transaction_row is None:
         flash(_flash_message("flash_transaction_not_found"), "error")
@@ -522,6 +557,7 @@ def edit_transaction(transaction_id: int) -> str:
 
 @app.route("/transactions/<int:transaction_id>/delete", methods=["POST"])
 def delete_transaction(transaction_id: int) -> str:
+    """Xóa một giao dịch và làm mới các tổng hợp đã cache."""
     if db_helper.delete_transaction(transaction_id):
         _invalidate_summary_cache()
         flash(_flash_message("flash_transaction_deleted"), "success")
@@ -532,6 +568,7 @@ def delete_transaction(transaction_id: int) -> str:
 
 @app.route("/categories")
 def categories_page() -> str:
+    """Hiển thị trang danh mục."""
     return render_template(
         "categories.html",
         **_shared_context(
@@ -544,6 +581,7 @@ def categories_page() -> str:
 
 @app.route("/categories/add", methods=["POST"])
 def add_category() -> str:
+    """Kiểm tra và tạo một danh mục mới từ form nhập."""
     category_name = request.form.get("category_name", default="").strip()
     category_type = request.form.get("category_type", type=int)
 
@@ -564,6 +602,7 @@ def add_category() -> str:
 
 @app.route("/categories/delete", methods=["POST"])
 def delete_category() -> str:
+    """Xóa danh mục theo mã nếu danh mục không còn được dùng."""
     key = request.form.get("key", default="").strip()
     if not key:
         flash(_flash_message("flash_category_key_missing"), "error")
@@ -579,6 +618,7 @@ def delete_category() -> str:
 
 @app.route("/budget")
 def budget_page() -> str:
+    """Hiển thị trang ngân sách."""
     return render_template(
         "budget.html",
         **_shared_context(
@@ -591,13 +631,12 @@ def budget_page() -> str:
 
 @app.route("/reports")
 def reports_page() -> str:
+    """Hiển thị trang báo cáo theo tháng với biểu đồ và bảng tổng hợp."""
     period_value = request.args.get("period")
     year, month, normalized_period = _parse_period(period_value)
     previous_year, previous_month = _shift_month(year, month, -1)
     recent_page = request.args.get("recent_page", default=1, type=int) or 1
     recent_per_page = 5
-    category_page = request.args.get("category_page", default=1, type=int) or 1
-    category_per_page = 5
     start_date, end_date = _month_bounds(year, month)
     shared_context = _shared_context(
         "reports",
@@ -622,6 +661,7 @@ def reports_page() -> str:
     previous_net_balance = previous_summary["net_balance"]
 
     def _delta_label(current_value: float, previous_value: float) -> tuple[str, str, float]:
+        """Tạo nhãn xu hướng và phần trăm dễ hiểu cho các thẻ báo cáo."""
         delta_value = current_value - previous_value
         if previous_value == 0:
             if current_value == 0:
@@ -651,20 +691,6 @@ def reports_page() -> str:
     category_total = sum(category_values)
     category_percentages = [round((value / category_total) * 100, 1) if category_total else 0 for value in category_values]
     monthly_summary = _cached_monthly_summary()
-
-    category_total_items = len(category_summary)
-    category_total_pages = max(1, int(math.ceil(category_total_items / category_per_page))) if category_per_page else 1
-    if category_page < 1:
-        category_page = 1
-    if category_page > category_total_pages:
-        category_page = category_total_pages
-
-    category_start_index = (category_page - 1) * category_per_page
-    category_end_index = category_start_index + category_per_page
-    report_category_summary_page = category_summary[category_start_index:category_end_index]
-
-    category_display_start = category_start_index + 1 if category_total_items else 0
-    category_display_end = min(category_end_index, category_total_items) if category_total_items else 0
 
     recent_page_data = db_helper.get_transactions_by_date_range_page(
         start_date,
@@ -758,19 +784,7 @@ def reports_page() -> str:
             f"{_category_label(str(item.get('category_key', '')), item['category_name'])} ({percent:.1f}%)" if category_total else _category_label(str(item.get('category_key', '')), item['category_name'])
             for item, percent in zip(category_summary, category_percentages)
         ],
-        report_category_summary=report_category_summary_page,
-        category_pagination={
-            "page": category_page,
-            "per_page": category_per_page,
-            "total_items": category_total_items,
-            "total_pages": category_total_pages,
-            "display_start": category_display_start,
-            "display_end": category_display_end,
-            "has_prev": category_page > 1,
-            "has_next": category_page < category_total_pages,
-            "prev_page": category_page - 1,
-            "next_page": category_page + 1,
-        },
+        report_category_summary=category_summary,
         report_monthly_labels=[item["month"] for item in monthly_summary],
         report_monthly_income=[float(item["total_income"] or 0) for item in monthly_summary],
         report_monthly_expense=[abs(float(item["total_expense"] or 0)) for item in monthly_summary],
@@ -794,6 +808,7 @@ def reports_page() -> str:
 
 @app.route("/budget/update", methods=["POST"])
 def update_budget() -> str:
+    """Kiểm tra và lưu hạn mức ngân sách từ form."""
     budget_value = request.form.get("budget_limit", type=float)
     if budget_value is None or budget_value <= 0:
         flash(_flash_message("flash_budget_invalid"), "error")
@@ -807,6 +822,7 @@ def update_budget() -> str:
 
 @app.route("/reset", methods=["POST"])
 def reset_database() -> str:
+    """Đặt lại database về trạng thái khởi tạo ban đầu."""
     db_helper.reset_database()
     app.config["DATABASE_READY"] = True
     _invalidate_summary_cache()
@@ -816,6 +832,7 @@ def reset_database() -> str:
 
 @app.route("/demo-data", methods=["POST"])
 def create_demo_data() -> str:
+    """Đặt lại database rồi tạo dữ liệu demo để trình bày."""
     db_helper.reset_database()
     app.config["DATABASE_READY"] = True
     _invalidate_summary_cache()

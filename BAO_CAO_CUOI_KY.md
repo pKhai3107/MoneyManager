@@ -168,68 +168,68 @@ Hệ thống phục vụ một tác nhân chính là người dùng. Người d�
 
 ```mermaid
 graph TB
-    User((Người dùng))
+  User((Người dùng))
     
-    subgraph "Quản lý giao dịch"
-        UC1[Khởi tạo cơ sở dữ liệu]
-        UC2[Thêm giao dịch mới]
-        UC3[Xem danh sách giao dịch]
-        UC4[Tìm kiếm giao dịch]
-        UC5[Lọc giao dịch theo loại]
-        UC6[Xem chi tiết giao dịch]
-        UC7[Sửa giao dịch]
-        UC8[Xóa giao dịch]
-    end
+  subgraph "Quản lý giao dịch"
+    UC1[Khởi tạo cơ sở dữ liệu]
+    UC2[Thêm giao dịch mới]
+    UC3[Xem danh sách giao dịch]
+    UC4[Tìm kiếm giao dịch]
+    UC5[Lọc giao dịch theo loại]
+    UC6[Xem chi tiết giao dịch]
+    UC7[Sửa giao dịch]
+    UC8[Xóa giao dịch]
+  end
     
-    subgraph "Quản lý danh mục"
-        UC9[Xem danh sách danh mục]
-        UC10[Thêm danh mục mới]
-        UC11[Xóa danh mục]
-    end
+  subgraph "Quản lý danh mục"
+    UC9[Xem danh sách danh mục]
+    UC10[Thêm danh mục mới]
+    UC11[Xóa danh mục]
+  end
     
-    subgraph "Quản lý ngân sách"
-        UC12[Xem hạn mức ngân sách]
-        UC13[Cập nhật hạn mức ngân sách]
-    end
+  subgraph "Quản lý ngân sách"
+    UC12[Xem hạn mức ngân sách]
+    UC13[Cập nhật hạn mức ngân sách]
+  end
     
-    subgraph "Báo cáo và phân tích"
-        UC14[Xem báo cáo theo tháng]
-        UC15[Xem biểu đồ và số liệu so sánh]
-        UC16[Xem thống kê danh mục]
-    end
+  subgraph "Báo cáo và phân tích"
+    UC14[Xem báo cáo theo tháng]
+    UC15[Xem biểu đồ và số liệu so sánh]
+    UC16[Xem thống kê danh mục]
+  end
     
-    subgraph "Tiện ích hệ thống"
-        UC17[Tạo dữ liệu demo]
-        UC18[Reset dữ liệu]
-        UC19[Chuyển ngôn ngữ]
-    end
+  subgraph "Tiện ích hệ thống"
+    UC17[Tạo dữ liệu demo]
+    UC18[Reset dữ liệu]
+    UC19[Chuyển ngôn ngữ]
+  end
     
-    User --> UC1
-    User --> UC2
-    User --> UC3
-    User --> UC4
-    User --> UC5
-    User --> UC6
-    User --> UC7
-    User --> UC8
-    User --> UC9
-    User --> UC10
-    User --> UC11
-    User --> UC12
-    User --> UC13
-    User --> UC14
-    User --> UC15
-    User --> UC16
-    User --> UC17
-    User --> UC18
-    User --> UC19
+  User --> UC1
+  User --> UC2
+  User --> UC3
+  User --> UC4
+  User --> UC5
+  User --> UC6
+  User --> UC7
+  User --> UC8
+  User --> UC9
+  User --> UC10
+  User --> UC11
+  User --> UC12
+  User --> UC13
+  User --> UC14
+  User --> UC15
+  User --> UC16
+  User --> UC17
+  User --> UC18
+  User --> UC19
     
-    UC3 -.->|bao gồm| UC4
-    UC3 -.->|bao gồm| UC5
-    UC3 -.->|bao gồm| UC6
-    UC14 -.->|bao gồm| UC15
-    UC14 -.->|bao gồm| UC16
-    UC2 -.->|cập nhật| UC3
+  UC3 -.->|bao gồm| UC4
+  UC3 -.->|bao gồm| UC5
+  UC3 -.->|bao gồm| UC6
+  UC14 -.->|bao gồm| UC15
+  UC14 -.->|bao gồm| UC16
+  UC2 -.->|cập nhật| UC3
 ```
 
 **Giải thích các nhóm use case:**
@@ -345,20 +345,21 @@ def add_transaction(self, amount: float, category_id: int, note: Optional[str] =
   """Thêm giao dịch mới, tự động xử lý dấu âm/dương dựa trên loại danh mục."""
   categories = self.get_all_categories()
   category = next((c for c in categories if c.id == category_id), None)
-
+    
   if not category:
     raise ValueError(f"Category với ID {category_id} không tồn tại.")
-
+    
+  # Loại 0 (chi) -> amount âm, Loại 1 (thu) -> amount dương
   final_amount = abs(amount) if category.type == 1 else -abs(amount)
-
+    
   transaction = Transaction.create_new(final_amount, category_id, note)
   if date:
     transaction.date = date
-
+    
   return db_helper.create_transaction(
-    transaction.date,
-    transaction.amount,
-    transaction.category_id,
+    transaction.date, 
+    transaction.amount, 
+    transaction.category_id, 
     transaction.note
   )
 ```
@@ -366,42 +367,66 @@ def add_transaction(self, amount: float, category_id: int, note: Optional[str] =
 ### 7.2. Route thêm giao dịch, cập nhật ngân sách, reset dữ liệu và tạo demo
 
 ```python
+@app.route("/transactions/add", methods=["POST"])
 def add_transaction() -> str:
+  """Kiểm tra và lưu một giao dịch mới từ form thêm giao dịch."""
   category_id = request.form.get("category_id", type=int)
   amount = request.form.get("amount", type=float)
   note = request.form.get("note", default="").strip() or None
   date_value = _parse_datetime_local(request.form.get("date"))
 
   if category_id is None or amount is None or amount <= 0:
-    flash("Vui lòng nhập số tiền hợp lệ lớn hơn 0 và chọn danh mục.", "error")
+    flash(_flash_message("flash_amount_category_invalid"), "error")
     return redirect(url_for("transactions_page"))
+
+  if not date_value:
+    flash(_flash_message("flash_date_invalid"), "error")
+    return redirect(url_for("transactions_page"))
+
+  try:
+    finance_manager.add_transaction(amount, category_id, note, date_value)
+    _invalidate_summary_cache()
+    flash(_flash_message("flash_transaction_added"), "success")
+  except ValueError as exc:
+    flash(str(exc), "error")
+
+  return redirect(url_for("transactions_page"))
 ```
 
 ```python
+@app.route("/budget", methods=["POST"])
 def update_budget() -> str:
+  """Kiểm tra và lưu hạn mức ngân sách từ form."""
   budget_value = request.form.get("budget_limit", type=float)
   if budget_value is None or budget_value <= 0:
-    flash("Ngân sách phải lớn hơn 0.", "error")
+    flash(_flash_message("flash_budget_invalid"), "error")
     return redirect(url_for("budget_page"))
 
   db_helper.set_budget_limit(budget_value)
-  flash("Đã cập nhật hạn mức ngân sách.", "success")
+  _invalidate_summary_cache()
+  flash(_flash_message("flash_budget_updated"), "success")
   return redirect(url_for("budget_page"))
 ```
 
 ```python
+@app.route("/reset", methods=["POST"])
 def reset_database() -> str:
+  """Đặt lại database về trạng thái khởi tạo ban đầu."""
   db_helper.reset_database()
   app.config["DATABASE_READY"] = True
-  flash("Đã khởi tạo lại cơ sở dữ liệu.", "success")
+  _invalidate_summary_cache()
+  flash(_flash_message("flash_database_reset"), "success")
   return redirect(url_for("dashboard"))
 
 
+@app.route("/demo-data", methods=["POST"])
 def create_demo_data() -> str:
+  """Đặt lại database rồi tạo dữ liệu demo để trình bày."""
   db_helper.reset_database()
   app.config["DATABASE_READY"] = True
+  _invalidate_summary_cache()
   created, message = _seed_demo_transactions()
-  flash(message if created else "Không tạo được dữ liệu demo.", "success" if created else "error")
+  flash(message if created else _flash_message("flash_demo_failed"), "success" if created else "error")
   return redirect(url_for("dashboard"))
 ```
 
@@ -412,7 +437,8 @@ def init_db():
   """Khởi tạo các bảng dữ liệu lần đầu."""
   conn = get_connection()
   cursor = conn.cursor()
-
+    
+  # Tao bang categories
   cursor.execute('''
     CREATE TABLE IF NOT EXISTS categories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -421,6 +447,49 @@ def init_db():
       type INTEGER NOT NULL CHECK (type IN (0, 1)) -- 0: chi, 1: thu
     )
            ''')
+
+  # Tạo bảng transactions
+  cursor.execute('''
+    CREATE TABLE IF NOT EXISTS transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL,
+    amount REAL NOT NULL,           -- Số dương cho thu, số âm cho chi
+    category_id INTEGER NOT NULL,   -- Tham chiếu sang bảng categories
+    note TEXT,
+    FOREIGN KEY (category_id) REFERENCES categories (id)
+    )
+          ''')
+
+  # Tạo bảng settings
+  cursor.execute('''
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    )
+  ''')
+
+  cursor.execute('CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date DESC)')
+  cursor.execute('CREATE INDEX IF NOT EXISTS idx_transactions_category_id ON transactions(category_id)')
+  cursor.execute('CREATE INDEX IF NOT EXISTS idx_categories_type ON categories(type)')
+  cursor.execute('CREATE INDEX IF NOT EXISTS idx_categories_key ON categories(key)')
+    
+  # Chèn categories mặc định
+  default_categories = [
+    ('food', 'Ăn uống', 0),
+    ('transport', 'Di chuyển', 0),
+    ('shopping', 'Mua sắm', 0),
+    ('bill', 'Hóa đơn', 0),
+    ('salary', 'Lương', 1),
+    ('bonus', 'Thưởng', 1)
+  ]
+  cursor.executemany('INSERT OR IGNORE INTO categories (key, value, type) VALUES (?, ?, ?)', default_categories)
+
+  # Chèn thử dữ liệu mặc định cho hạn mức nếu chưa có
+  cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('budget_limit', '5000000')")
+    
+  conn.commit()
+  conn.close()
+  print("Khởi tạo Database thành công!")
 ```
 
 ```python
@@ -428,18 +497,30 @@ def get_monthly_summary(year=None, month=None):
   """Lấy tổng kết theo tháng."""
   conn = get_connection()
   cursor = conn.cursor()
-
+    
+  if year and month:
+    date_pattern = f'{year:04d}-{month:02d}%'
+  elif year:
+    date_pattern = f'{year:04d}%'
+  else:
+    date_pattern = '%'
+    
   cursor.execute('''
-    SELECT
+    SELECT 
       strftime('%Y-%m', date) as month,
       SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as total_income,
       SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END) as total_expense,
       COUNT(*) as transaction_count
-    FROM transactions
+    FROM transactions 
     WHERE date LIKE ?
     GROUP BY strftime('%Y-%m', date)
     ORDER BY month DESC
   ''', (date_pattern,))
+    
+  rows = cursor.fetchall()
+  conn.close()
+    
+  return [dict(row) for row in rows]
 ```
 
 ```python
@@ -447,11 +528,17 @@ def create_transaction(date, amount, category_id, note=None):
   """Tạo giao dịch mới."""
   conn = get_connection()
   cursor = conn.cursor()
-
+    
   cursor.execute('''
     INSERT INTO transactions (date, amount, category_id, note)
     VALUES (?, ?, ?, ?)
   ''', (date, amount, category_id, note))
+    
+  conn.commit()
+  transaction_id = cursor.lastrowid
+  conn.close()
+    
+  return transaction_id
 ```
 
 ### 7.4. Giao diện CLI và đổi ngôn ngữ
@@ -459,16 +546,29 @@ def create_transaction(date, amount, category_id, note=None):
 ```python
 def main_menu(manager: FinanceManager):
   print("\n=== QUẢN LÝ TÀI CHÍNH CÁ NHÂN ===")
+    
+  # Hiển thị số dư nhanh
   stats = manager.get_balance_summary()
   print(f"Số dư hiện tại: {stats['current_balance']:,.0f} VND")
   print(f"(Tổng Thu: {stats['total_income']:,.0f} | Tổng Chi: {abs(stats['total_expense']):,.0f})")
+    
+  print("-" * 30)
+  print("1. Xem danh sách giao dịch")
+  print("2. Thêm Thu/Chi mới")
+  print("3. Xem danh sách Categories")
+  print("4. Khởi tạo lại Database (Reset)")
+  print("0. Thoát")
+    
+  choice = input("Lựa chọn của bạn: ")
+  return choice
 ```
 
 ```python
 @app.route("/language", methods=["POST"])
 def set_language() -> str:
+  """Lưu ngôn ngữ đã chọn vào session và quay lại trang trước đó."""
   language = request.form.get("language", "vi")
-  session["language"] = language if language in TRANSLATIONS else "vi"
+  session["language"] = language if language in FILE_TRANSLATIONS else "vi"
   return redirect(request.referrer or url_for("dashboard"))
 ```
 

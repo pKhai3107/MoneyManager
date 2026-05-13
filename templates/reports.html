@@ -34,7 +34,7 @@
     <label>
       <span>{{ t('report_month_filter') }}</span>
 
-      <select name="period">
+      <select class="select-field" name="period">
 
         {% for option in report_period_options %}
           <option
@@ -206,29 +206,6 @@
 
       {% endfor %}
 
-    </div>
-
-    <div class="table-pagination report-pagination">
-      <div>
-        {{ t('showing') }} <strong>{{ category_pagination.display_start }}-{{ category_pagination.display_end }}</strong>
-        / <strong>{{ category_pagination.total_items }}</strong>
-      </div>
-
-      <div class="pagination-actions">
-        {% if category_pagination.has_prev %}
-          <a class="btn btn-mini btn-outline" href="{{ url_for('reports_page', period=period, category_page=category_pagination.prev_page, recent_page=recent_pagination.page) }}">{{ t('previous') }}</a>
-        {% else %}
-          <span class="btn btn-mini btn-outline is-disabled">{{ t('previous') }}</span>
-        {% endif %}
-
-        <span class="pagination-page">{{ t('page') }} <strong>{{ category_pagination.page }}</strong> / {{ category_pagination.total_pages }}</span>
-
-        {% if category_pagination.has_next %}
-          <a class="btn btn-mini btn-outline" href="{{ url_for('reports_page', period=period, category_page=category_pagination.next_page, recent_page=recent_pagination.page) }}">{{ t('next') }}</a>
-        {% else %}
-          <span class="btn btn-mini btn-outline is-disabled">{{ t('next') }}</span>
-        {% endif %}
-      </div>
     </div>
 
   </article>

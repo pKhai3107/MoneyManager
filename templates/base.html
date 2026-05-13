@@ -28,21 +28,15 @@
             <a class="module-link {% if active_page == 'reports' %}active{% endif %}" href="{{ url_for('reports_page') }}" data-transition-link>{{ t('reports') }}</a>
           </nav>
 
-          <div class="sidebar-summary">
-            <span class="sidebar-summary-label">{{ t('language') }}</span>
-            <form class="language-switcher" action="{{ url_for('set_language') }}" method="post">
-              <select name="language" aria-label="{{ t('language') }}" onchange="this.form.submit()">
-                {% for option in supported_languages %}
-                  <option value="{{ option.code }}" {% if option.code == current_lang %}selected{% endif %}>
-                    {{ option.label }}
-                  </option>
-                {% endfor %}
-              </select>
-            </form>
-            <span class="sidebar-summary-label">{{ t('quick_overview') }}</span>
-            <strong>{{ current_balance_display }} VND</strong>
-            <small>{{ budget_used|round(1) }}% {{ t('budget_used_text') }}</small>
-          </div>
+          <form class="language-switcher" action="{{ url_for('set_language') }}" method="post">
+            <select class="select-field select-field-compact" name="language" aria-label="{{ t('language') }}" onchange="this.form.submit()">
+              {% for option in supported_languages %}
+                <option value="{{ option.code }}" {% if option.code == current_lang %}selected{% endif %}>
+                  {{ option.label }}
+                </option>
+              {% endfor %}
+            </select>
+          </form>
         </div>
 
         <form class="sidebar-action" action="{{ url_for('reset_database') }}" method="post" data-confirm="{{ t('confirm_reset') }}" onsubmit="return confirm(this.dataset.confirm);">
@@ -189,9 +183,6 @@
           </div>
         {% endif %}
 
-        <footer class="app-footer">
-          <small>{{ t('footer_note') }}</small>
-        </footer>
       </main>
     </div>
   </body>

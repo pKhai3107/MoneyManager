@@ -18,16 +18,16 @@
   </div>
 
   <div class="balance-card">
-    <span>{{ t('dashboard_balance_available') }}</span>
-    <strong>{{ current_balance_display }} VND</strong>
+    <span>{{ t('dashboard_month_balance') }}</span>
+    <strong>{{ current_month_balance_display }} VND</strong>
     <div class="balance-meta">
       <div>
         <small>{{ t('dashboard_month_income') }}</small>
-        <p style="color: var(--success);">+{{ total_income_display }}</p>
+        <p style="color: var(--success);">+{{ current_month_income_display }}</p>
       </div>
       <div>
         <small>{{ t('dashboard_month_expense') }}</small>
-        <p style="color: var(--danger);">-{{ total_expense_display }}</p>
+        <p style="color: var(--danger);">-{{ current_month_expense_display }}</p>
       </div>
     </div>
   </div>
